@@ -73,7 +73,7 @@ patches.json ──► gigawing_patch.py sync ──► mister/*.mra (CRCs)
 * **`python gigawing_patch.py sync [zip] [--build N]`**: applies the patches to your local romset, stores output CRC/SHA-1 in `patches.json`, rewrites `crc="…"` in the MRA for each patched part, embeds patch data and the full MRA text into `index.html` (between `// PATCH-DATA-BEGIN/END` and `// MRA-BEGIN/END`), and sets `BUILD`.
 * **Build numbers:** the pre-commit hook runs `sync --build <last committed BUILD + 1>` whenever a commit touches `index.html`, `gigawing_patch.py`, `patches.json` or `mister/*.mra`, then stages the generated files. So every such commit is exactly one new build, logged in `BUILDS.md`.
 * **Output name:** the patched romset is `gigawingop.zip` (MRA `zip="gigawingop.zip|qsound.zip"`, `<setname>gigawingop</setname>`). For MAME it must be renamed to `gigawingj.zip`.
-* **Web patcher:** pure client side. Reads zips with `DecompressionStream`, applies the same patch list, verifies against embedded output CRC/SHA-1, writes a zip with `CompressionStream`, and offers the embedded MRA as a download. Works from `file://` and GitHub Pages.
+* **Web patcher:** pure client side. Reads zips with `DecompressionStream`, applies the same patch list, verifies every file against embedded output CRC/SHA-1 (the result table lists only files whose CRC differs from the original; unchanged files are verified and counted in the status line), writes a zip with `CompressionStream`, and offers the embedded MRA as a download. Works from `file://` and GitHub Pages.
 
 ---
 
@@ -290,6 +290,7 @@ See `BUILDS.md` for the generated log. Human summary:
 | 9 | Boot screen: GIGAWING OVERPOWERED / 261127 |
 | 10 | Medal magnet (pull medals within 48 px into the ship) |
 | 11 | Medal magnet radius doubled to 96 px |
+| 12 | Web patcher lists only the patched files in the download table |
 
 ---
 

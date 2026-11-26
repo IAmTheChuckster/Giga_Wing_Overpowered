@@ -151,7 +151,7 @@ footer { font-size: 13px; color: var(--muted); text-align: center; }
 
 <script>
 // Build number of this patcher. Bumped automatically by `python gigawing_patch.py sync` (see BUILDS.md).
-const BUILD = 11;
+const BUILD = 12;
 // Generated from patches.json by gigawing_patch.py sync. Do not edit by hand.
 // PATCH-DATA-BEGIN
 const PATCH = {
@@ -407,17 +407,18 @@ const ROMSET = {   // every file MAME needs for gigawingj: [size, original CRC32
         for (let k = 0; k < orig.length; k++) if (d[off + k] !== orig[k]) throw new Error(`Patch ${i} (${p.file} @ ${p.offset}): original bytes don't match.`);
         d.set(neu, off);
       });
-      $("out-body").innerHTML = ""; let ok = true;
+      $("out-body").innerHTML = ""; let ok = true, unchanged = 0;
       for (const n of Object.keys(ROMSET)) {
         const crc = hex8(crc32(res[n])), h = await sha1(res[n]);
         const good = !outputs[n] || (outputs[n].crc === crc && outputs[n].sha1 === h); ok = ok && good;
+        if (good && crc === ROMSET[n][1]) { unchanged++; continue; }   // only list files the patch changes
         const tr = document.createElement("tr");
         tr.innerHTML = `<td class="mono">${n}</td><td class="mono">${crc}</td><td class="sha">${h}</td><td>${good ? '<span class="pill ok">Matches Build ' + BUILD + '</span>' : '<span class="pill bad">Mismatch</span>'}</td>`;
         $("out-body").appendChild(tr);
       }
       if (!ok) throw new Error("The result doesn't match the published checksums. Please report this.");
       state.result = res; $("dl-romset").disabled = false;
-      $("build-status").textContent = `Build ${BUILD}: ${patches.length} patch${patches.length === 1 ? "" : "es"} applied and verified.`;
+      $("build-status").textContent = `Build ${BUILD}: ${patches.length} patch${patches.length === 1 ? "" : "es"} applied and verified. Showing the patched files; the other ${unchanged} files are unchanged and verified too.`;
     } catch (err) { msg($("out-notes"), "bad", err.message || String(err)); }
   }
 
@@ -425,6 +426,7 @@ const ROMSET = {   // every file MAME needs for gigawingj: [size, original CRC32
     $("out-body").innerHTML = "";
     for (const n of Object.keys(ROMSET)) {
       const o = outputs[n] || { crc: ROMSET[n][1], sha1: "" };
+      if (o.crc === ROMSET[n][1]) continue;                        // only list files the patch changes
       $("out-body").insertAdjacentHTML("beforeend", `<tr><td class="mono">${n}</td><td class="mono">${o.crc}</td><td class="sha">${o.sha1}</td><td><span class="pill">Expected</span></td></tr>`);
     }
   }

@@ -64,7 +64,7 @@ SITES = [
 
 # ---------------- medal magnet ----------------
 MAGNET = 0x901C0        # after the rapid-fire readers ($90100-$901A7), same verified-unused block
-MAGNET_RANGE = 0x30     # pull medals within 48 px (both axes) of the ship
+MAGNET_RANGE = 0x60     # pull medals within 96 px (both axes) of the ship
 # Each frame, before the game's own medal pickup check, every medal within MAGNET_RANGE moves 25% of the
 # way to the ship (X/Y += distance << 14 in 16.16 fixed point), so it visibly gets sucked in and the normal
 # pickup collects it. Medals live in two linked lists (heads at -$10C0(a5) and -$10BC(a5)); node layout:

@@ -43,8 +43,8 @@
         <!-- key - starts at 0x0 - length 0x14 (5 bits) -->
         <part name="gigawingj.key" crc="8121a25e"/>
         <!-- maincpu - starts at 0x14 - length 0x180000 (21 bits) -->
-        <part name="ggwj.03a" crc="5d5de497"/>
-        <part name="ggwj.04a" crc="e44180d0"/>
+        <part name="ggwj.03a" crc="84b06757"/>
+        <part name="ggwj.04a" crc="72e34c13"/>
         <part name="ggwj.05a" crc="43811454"/>
         <!-- audiocpu - starts at 0x180014 - length 0x20000 (17 bits) -->
         <part name="ggw.01" crc="4c6351d5"/>

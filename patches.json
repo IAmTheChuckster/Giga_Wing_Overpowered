@@ -4,30 +4,44 @@
   "patches": [
     {
       "file": "ggwj.03a",
-      "offset": "0x68",
-      "original": "0000d809",
-      "patched": "09000001",
-      "note": "IRQ2 (vblank) vector -> rapid fire hook (was $9d8). Vectors are read as data, never decrypted."
+      "offset": "0x89ba",
+      "original": "b758bb4ba9fd",
+      "patched": "652d9fb368ac",
+      "note": "P1 shot read (menu path) $89ba: move.b $804001,d6 -> jsr $90100 (CPS2-encrypted)"
     },
     {
       "file": "ggwj.03a",
-      "offset": "0x78",
-      "original": "00001a0a",
-      "patched": "09001001",
-      "note": "IRQ6 vector -> rapid fire hook (was $a1a)"
+      "offset": "0x898a",
+      "original": "9aa15942ee35",
+      "patched": "ca532df931b7",
+      "note": "P2 shot read $898a: move.b $804000,d6 -> jsr $9012a (CPS2-encrypted)"
+    },
+    {
+      "file": "ggwj.03a",
+      "offset": "0x3eac",
+      "original": "4d43133cf940",
+      "patched": "2174d6a948eb",
+      "note": "P1 in-game input read $3eac: move.b $804001,d0 -> jsr $90154 (CPS2-encrypted)"
+    },
+    {
+      "file": "ggwj.03a",
+      "offset": "0x3ed0",
+      "original": "7a698569f44c",
+      "patched": "953862d249ac",
+      "note": "P2 in-game input read $3ed0: move.b $804000,d0 -> jsr $9017e (CPS2-encrypted)"
     },
     {
       "file": "ggwj.04a",
       "offset": "0x10100",
-      "original": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-      "patched": "f20bf2f49ce36a1f5fda1a901904f2dcfcb5c2d017bfd4cfb7804faa3201a954dcd5a1a7a75d861604ff37328db6a5d0830468cfa95ae193b0ab95712bc394d7b8081e7ce00dfe0023126bf921399a08856db8655df0cb88590994fc29da81ea8e1ef13400338f010d7b",
-      "note": "Button 3 = 10Hz rapid Shot hook at $90100, CPS2-encrypted with gigawingj.key (unused zero block). Runs original IRQ, then sets Shot (bit4) in $FF7061/$FF7062 for 3 of every 6 frames while Button 3 (bit6) is held."
+      "original": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "patched": "bb5530fcb6a45d6eb7f60432e76b15c5bba7102500c148e061ef0d8013d13fbf1be89ed4ec3046e84c2a789e0f220ef42c8afef3ba0e60768ce450b3cc0bc6c8c413202ad2f96037d106781b1a7ca048e3d24c3b8f4378d6be6da429eb9e2647a923f37783d56b852a9f0dc77b55421b3b27c0015979d8c54aad08ebd026499d1e72ce4971d67d3aa6da751b6ac37f6fef920f108038f1bce2672a4cfd94d3ec14992d732540fadf",
+      "note": "Rapid fire reader at $90100 (unused zero block, CPS2-encrypted): 4 readers, one per patched site: each reads the player input port into the same register as the original, and while Button 3 (bit6, active low) is held forces Shot (bit4) pressed for 3 of every 6 frames (frame counter $FF2090) = 10Hz."
     }
   ],
   "outputs": {
     "gigawingj.key": "8121a25e",
-    "ggwj.03a": "5d5de497",
-    "ggwj.04a": "e44180d0",
+    "ggwj.03a": "84b06757",
+    "ggwj.04a": "72e34c13",
     "ggwj.05a": "43811454",
     "ggw.01": "4c6351d5",
     "ggw.11m": "e172acf5",

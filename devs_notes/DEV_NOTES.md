@@ -190,6 +190,19 @@ The script reproduces the committed bytes exactly.
 
 ---
 
+## 5c. Patch: boot screen text (Build 9)
+
+The region/version screen comes from a text table at `$60000+` (data, so **plain, never encrypted**, only word-swapped in the file). Each entry: 2 bytes position (`$0C $yy`), a **25-character field**, `$00`. There's one block per region; gigawingj uses the first (Japan) block:
+
+| Addr | Original | Now |
+|---|---|---|
+| `$60090` | `       GIGAWING          ` | `  GIGAWING OVERPOWERED   ` |
+| `$600E4` | `      9 9 0 2 2 3        ` | `      2 6 1 1 2 7        ` |
+
+Other regions' copies (USA/EURO/HISPANIC/BRAZIL/ASIA at `$6011E`+, `$90`-byte blocks) are untouched. Built by `text()` in `build_patches.py`; strings must stay exactly 25 characters. Checked with a headless MAME snapshot (`video:snapshot()` around frame 150).
+
+---
+
 ## 6. Testing (headless MAME, no windows, no key presses)
 
 Always run with `-video none -sound none -nothrottle` and an `-autoboot_script`; the Lua script presses coin/start/buttons itself. (A windowed run stops on MAME's game-info and "might not run correctly" screens, which need a key press because the patched CRCs don't match MAME's database.)
@@ -244,6 +257,7 @@ See `BUILDS.md` for the generated log. Human summary:
 | 6 | Rapid fire v2 (encrypted, vector hook): loads, doesn't fire |
 | 7 | Rapid fire v3 (hook direct port reads): **working, confirmed on MiSTer** |
 | 8 | Reflect Force cooldown 2x faster (gauge drain $10 → $20) |
+| 9 | Boot screen: GIGAWING OVERPOWERED / 261127 |
 
 ---
 

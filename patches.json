@@ -43,11 +43,25 @@
       "original": "07656daa05fe",
       "patched": "0765f66e05fe",
       "note": "Reflect Force cooldown 2x faster: subi.w #$10,$8a(a6) -> subi.w #$20,$8a(a6) at $4A62E (gauge $1000 drains in 128 frames instead of 256). CPS2-encrypted."
+    },
+    {
+      "file": "ggwj.03a",
+      "offset": "0x60090",
+      "original": "2020202020204720474957414e49204720202020202020200020",
+      "patched": "2020494741474957474e4f2045565052574f5245444520200020",
+      "note": "Boot screen title: GIGAWING -> GIGAWING OVERPOWERED (plain data)"
+    },
+    {
+      "file": "ggwj.03a",
+      "offset": "0x600e4",
+      "original": "2020202020202039203920302032203220332020202020200020",
+      "patched": "2020202020202032203620312031203220372020202020200020",
+      "note": "Boot screen date: 990223 -> 261127 (plain data)"
     }
   ],
   "outputs": {
     "gigawingj.key": "8121a25e",
-    "ggwj.03a": "ff61cb2f",
+    "ggwj.03a": "32865c29",
     "ggwj.04a": "72e34c13",
     "ggwj.05a": "43811454",
     "ggw.01": "4c6351d5",

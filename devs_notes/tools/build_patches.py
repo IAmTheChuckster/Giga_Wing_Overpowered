@@ -4,6 +4,7 @@
 Patches built here (see devs_notes/DEV_NOTES.md):
   * Button 3 = 10Hz rapid Shot (4 hooked port reads + reader routines at $90100)
   * Reflect Force cooldown 2x faster (gauge drain $10 -> $20 per frame at $4A62E)
+  * Boot screen: GIGAWING OVERPOWERED / 2 6 1 1 2 7 (plain text at $60090 / $600E4)
 
 What it does
   1. Builds the CPS2 encrypt/decrypt tools from patches/mmxi_v1.0.0_20250412.zip
@@ -123,6 +124,23 @@ def main():
         e = patch("ggwj.03a", 0, 0x4A62E, w(0x046E, RF_DRAIN, 0x008A))
         e["note"] = (f"Reflect Force cooldown 2x faster: subi.w #$10,$8a(a6) -> subi.w #${RF_DRAIN:x},$8a(a6) "
                      "at $4A62E (gauge $1000 drains in 128 frames instead of 256). CPS2-encrypted.")
+        patches.append(e)
+
+        # Boot screen text (Japan block of the region table at $60090). Data reads are never
+        # decrypted, so text is plain in the ROM (just word-swapped). Each line is a 25-char field.
+        def text(addr, old, new):
+            assert len(old) == len(new) == 25, (old, new)
+            raw = (tmp / "ggwj.03a").read_bytes()
+            lo, hi = addr & ~1, (addr + 25 + 1) & ~1                  # whole words
+            cpu = bytearray(swap(raw[lo:hi]))                       # CPU (big-endian) view
+            assert cpu[addr - lo:addr - lo + 25] == old.encode(), cpu
+            cpu[addr - lo:addr - lo + 25] = new.encode()
+            return {"file": "ggwj.03a", "offset": hex(lo), "original": raw[lo:hi].hex(), "patched": swap(bytes(cpu)).hex()}
+        e = text(0x60090, "       GIGAWING          ", "  GIGAWING OVERPOWERED   ")
+        e["note"] = "Boot screen title: GIGAWING -> GIGAWING OVERPOWERED (plain data)"
+        patches.append(e)
+        e = text(0x600E4, "      9 9 0 2 2 3        ", "      2 6 1 1 2 7        ")
+        e["note"] = "Boot screen date: 990223 -> 261127 (plain data)"
         patches.append(e)
 
     cfg_path = ROOT / "patches.json"

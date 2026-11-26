@@ -99,7 +99,7 @@ patches.json ──► gigawing_patch.py sync ──► mister/*.mra (CRCs)
 * Every 68000 word of new code is encrypted, including extension words (immediates, absolute addresses), because they're fetched as program.
 
 ### Free ROM space
-* **$090088-$090817** (1936 bytes of zeros in `ggwj.04a`, file offset $10088), inside the encrypted range. A MAME read tap (`who_reads.lua`, `GW_LO=90088 GW_HI=90817`) over 8000 frames of gameplay saw **zero reads**. The rapid-fire code lives at **$090100-$0901A7**. Space used by the magnet: $0901C0-$090243. Space left: $090244-$090817.
+* **$090088-$090817** (1936 bytes of zeros in `ggwj.04a`, file offset $10088), inside the encrypted range. A MAME read tap (`who_reads.lua`, `GW_LO=90088 GW_HI=90817`) over 8000 frames of gameplay saw **zero reads**. The rapid-fire code lives at **$090100-$0901A7**. Space used by the magnet: $0901C0-$090243; bullet cancel: $090250-$09031B. Space left: $09031C-$090817.
 * Other zero runs exist ($08B040, $08C168, $08E926, …) but are **unverified**; tap-test before use.
 * $17DBE2-$17F0B4 is zero but above the encryption limit (don't use for code, see above). The game reads $17DF82 and $17EF80 there.
 
@@ -136,6 +136,12 @@ patches.json ──► gigawing_patch.py sync ──► mister/*.mra (CRCs)
 * Medals are 32-byte nodes in **two linked lists**, heads at `-$10C0(a5)` = `$FF6F40` and `-$10BC(a5)` = `$FF6F44`. Node: `+0` next pointer, `+6` X (16.16), `+$A` Y (16.16), `+$E` X velocity, `+$12` Y velocity. Spawned by `$2BFCC` from a free list at `-$10D8(a5)`.
 * **Pickup:** `$23652` (P1, object `$2DEA(a5)` = `$FFADEA`) / `$237D6` (P2, `$2EAA(a5)` = `$FFAEAA`) build a box from the player's X/Y and size fields `$36`-`$3C`, then `$2BF2E` walks both lists and calls `$2369C` for each medal inside the box (adds its value to score and the counter, shows the `+NN` popup, frees the node).
 * Player and medal coordinates share one space: player X word `+$A`, Y word `+$E`; medal X word `+6`, Y word `+$A`.
+
+### Enemies, enemy bullets, medal spawning
+* **Enemy destroyed:** common routine `$67E52` (23 callers). A6 = enemy object (position words `$A`/`$E`), A3 = enemy descriptor. It returns early if `$24(a6)` is set, otherwise `btst #4,$1(a6)` at `$67E5A`, awards kill score (`$57458`), flags the enemy's parts dead, drops its item (`$2B470`) and jumps to the death handler `$E(a3)`.
+* **Enemy bullets:** linked lists `-$10E4(a5)` = `$FF6F1C` (just fired, spawn animation) and `-$10E0(a5)` = `$FF6F20` (moving); count `-$10D4(a5)` = `$FF6F2C`. All objects (bullets, medals) share the free node list `-$10D8(a5)`. Node: `+0` next, `+6` X, `+$A` Y (16.16), `+$E`/`+$12` velocity. Spawner `$24E20` (enemy fire). The game frees a bullet with `subq.w #1,-$10D4(a5)` and pushes the node back on the free list.
+* **Medal spawner `$2B60E`:** `d0` = Y velocity, `d1` = X velocity, `d2`/`d3` = X/Y (clamped to the screen), `d4` = type. **Type 8 = small medal** (plain list `-$10BC`, capped at 100 by `-$107A`). The game itself turns reflected bullets that hit enemies into type-8 medals at `$23D36` with random velocity from `$378A` (`d0 & $1FFFF`, `(d1 & $3FFF) - $2000`).
+* **Score:** BCD at `$FF70CC` (P1); per-frame pending add from `$FF72AA` (P1) / `$FF72B2` (P2) at `$645EC`.
 
 ### Frame counter
 * `$FF2090` (word) is incremented once per vblank at $B56. Used as the rapid-fire phase.
@@ -193,6 +199,27 @@ The script reproduces the committed bytes exactly.
 **Change:** one encrypted immediate word in `ggwj.03a`: `subi.w #$10,$8a(a6)` → `subi.w #$20,$8a(a6)` at `$4A62E` (`046E 0010 008A` → `046E 0020 008A`, only the middle word changes after encryption). Built by `build_patches.py` (`RF_DRAIN = 0x20`; change that constant to tune it, e.g. `0x40` = 4x).
 
 **Measured** (`rf_cooldown_test.lua`, fresh nvram): original drain 15.8/frame (about 260 frames), patched 31.5/frame (about 130 frames).
+
+---
+
+## 5e. Patch: bullet cancels (Build 15)
+
+**Behaviour:** when an enemy is destroyed, every enemy bullet within **24 px** (circular distance) of it is cancelled; then every bullet within **16 px** of any cancelled bullet is cancelled too, repeatedly, so clusters chain. Each cancelled bullet becomes a **small medal** (type 8) at its position, with the same random pop as the game's own reflect conversion.
+
+**Hook:** `btst #4,$1(a6)` (6 bytes) at `$67E5A` in the enemy-destroyed routine → `jsr $90250`. The routine runs the cancel, then executes the displaced `btst` and returns; `rts` keeps the flags for the game's following `bne`.
+
+**Routine** at `$90250`-`$9031B` (encrypted):
+1. Save all registers, centre = enemy X/Y, R² = 24².
+2. `gather`: walk both bullet lists (`-$10E4`, `-$10E0`) with a previous-link pointer; any bullet with dx²+dy² < R² is unlinked and appended to a private "cancelled" list.
+3. Chain: walk the cancelled list from its head; for each bullet, `gather` again with centre = that bullet and R² = 16². Newly found bullets are appended to the end, so they're processed in turn (breadth-first).
+4. For each cancelled bullet: read X/Y, free the node exactly like the game (push on `-$10D8`, `subq.w #1,-$10D4`), then call `$2B60E` with type 8 and random velocity. Freeing first means the spawner can reuse the node.
+5. Restore registers, displaced `btst`, `rts`.
+
+Settings in `build_patches.py`: `CANCEL_KILL_R`, `CANCEL_CHAIN_R`, `SMALL_MEDAL`. Cost is O(cancelled × bullets) only on frames where an enemy dies.
+
+**Tests:**
+* `cancel_unit_test.lua` (deterministic): builds a fake enemy plus bullets A (+20 px), B (+34), C (+48), D (+70), E (0,+30) and calls the routine. Result: **PASS: A,B,C cancelled (chain), D,E kept, count −3, medals +3.** (The harness can't return cleanly from the forced call on MAME's cycle-accurate 68000; a control run that jumps straight to the stub without the cancel code crashes the same way, so the return isn't checked. See the script header.)
+* `cancel_test.lua` (real play): counts bullets freed by the routine. In the scripted stage-1 game it cancelled 3 bullets in 2 kills; the game kept running normally (no trap, frame counter advancing). Medals collected: 2101 → 2224.
 
 ---
 
@@ -254,6 +281,7 @@ b1 3on3off   writes=754
 b3 hook      writes=741-754    # 13 here = rapid fire broken
 ```
 * **Measure, don't eyeball.** Counting writes to QSound shared RAM ($618000-$619FFF) is a reliable shot proxy; screenshots misled us in Build 5.
+* `cancel_unit_test.lua` / `cancel_test.lua`: bullet cancel, see §5e.
 * `magnet_dwell_test.lua`: longest time any medal stays in magnet range without being collected (player active only). Build 13: 55 frames, 2 medals over 30 (trailing). Build 14: 10 frames, 0.
 * `magnet_test.lua`: samples the medal counter every 100 frames; compare a build with and without the magnet.
 * `rf_cooldown_test.lua`: holds Shot for a Reflect Force and reports the gauge drain rate. Expect 16/frame original, 32/frame from Build 8.
@@ -297,6 +325,7 @@ See `BUILDS.md` for the generated log. Human summary:
 | 12 | Web patcher lists only the patched files in the download table |
 | 13 | Medal magnet pull slowed from 25% to 12.5% per frame (medals could trail the ship) |
 | 14 | Magnet back to 25%, clears medal velocity while pulling (fixes trailing) |
+| 15 | Bullet cancels: enemy kill turns bullets within 24 px (chain 16 px) into small medals |
 
 ---
 

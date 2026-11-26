@@ -6,29 +6,29 @@
       "file": "ggwj.03a",
       "offset": "0x68",
       "original": "0000d809",
-      "patched": "170000e0",
-      "note": "IRQ2 (vblank) vector -> rapid fire hook (was $9d8)"
+      "patched": "09000001",
+      "note": "IRQ2 (vblank) vector -> rapid fire hook (was $9d8). Vectors are read as data, never decrypted."
     },
     {
       "file": "ggwj.03a",
       "offset": "0x78",
       "original": "00001a0a",
-      "patched": "170010e0",
+      "patched": "09001001",
       "note": "IRQ6 vector -> rapid fire hook (was $a1a)"
     },
     {
-      "file": "ggwj.05a",
-      "offset": "0x7e000",
+      "file": "ggwj.04a",
+      "offset": "0x10100",
       "original": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-      "patched": "3c2f170020e0e740f94e0000d809714e3c2f170020e0e740f94e00001a0a714ee74800c000703930ff009020fc8006004048400c03002c643912ff006170010806000467c1080400c113ff0061703912ff006270010806000467c1080400c113ff006270df4c0300734e",
-      "note": "Button 3 = 10Hz rapid Shot: runs original IRQ, then sets Shot (bit4) in $FF7061/$FF7062 for 3 of every 6 frames while Button 3 (bit6) is held. Plain code (above CPS2 decryption limit $101000)."
+      "patched": "f20bf2f49ce36a1f5fda1a901904f2dcfcb5c2d017bfd4cfb7804faa3201a954dcd5a1a7a75d861604ff37328db6a5d0830468cfa95ae193b0ab95712bc394d7b8081e7ce00dfe0023126bf921399a08856db8655df0cb88590994fc29da81ea8e1ef13400338f010d7b",
+      "note": "Button 3 = 10Hz rapid Shot hook at $90100, CPS2-encrypted with gigawingj.key (unused zero block). Runs original IRQ, then sets Shot (bit4) in $FF7061/$FF7062 for 3 of every 6 frames while Button 3 (bit6) is held."
     }
   ],
   "outputs": {
     "gigawingj.key": "8121a25e",
-    "ggwj.03a": "45e18115",
-    "ggwj.04a": "8c6e093c",
-    "ggwj.05a": "baec9e00",
+    "ggwj.03a": "5d5de497",
+    "ggwj.04a": "e44180d0",
+    "ggwj.05a": "43811454",
     "ggw.01": "4c6351d5",
     "ggw.11m": "e172acf5",
     "ggw.12m": "4bee4e8f",

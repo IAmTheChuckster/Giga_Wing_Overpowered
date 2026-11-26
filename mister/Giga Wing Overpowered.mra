@@ -87,5 +87,5 @@
         <DSWB/>
         <DSWC/>
     </switches>
-    <buttons names="Shot,Force Bomb,-,-,-,-,Start,Coin,Core credits" default="A,B,Start,Select,-" count="2"/>
+    <buttons names="Shot,Force Bomb,Rapid Shot,-,-,-,Start,Coin,Core credits" default="A,B,X,Start,Select,-" count="2"/>
 </misterromdescription>

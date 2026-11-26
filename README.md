@@ -1,34 +1,15 @@
-# Arcade Rom Template
+# Giga Wing Overpowered
 
-A gameplay patch for `Game`<br>
-This repository holds only source, tools and notes. **No ROM data is included**; you patch your own legally owned dump.
-## To Do:
+Patch for **Giga Wing (Japan 990223)**, MAME set `gigawingj`.
 
-   
-## About
-Why did I make this? Because it's fun and for my own personal research to see the capabilities of Claude.<br>
-While Claude was used I put effort in making sure there are balanced gameplay.<br>
-I did all the testing and planning.
+## Patch your romset
+- **Web:** open `index.html`, drop in your `gigawing.zip`, download `gigawingj.zip`.
+- **Command line:** `python gigawing_patch.py patch path/to/gigawing.zip -o gigawingj.zip`
 
-## Change Notes
+Put `gigawingj.zip` (plus `qsound.zip`) in your MAME roms folder. For MiSTer use `mister/Giga Wing Overpowered.mra`.
 
-## Patching the game
-
-### Web Patcher
-Open the **[Web Patcher](https://iamthechuckster.github.io/game/)** (`index.html`) and drop in your `rom.zip`. It checks the file names and CRCs, builds the patched files automatically, and lets you download just the patched files or a complete `rom.zip` romset. Everything runs in your browser; nothing is uploaded.
-
-### With Python
-
-## Testing
-This patch was tested with MAME 0.289 and [CV1k core for the MiSTer FPGA by Raki](https://www.patreon.com/c/ikamusume/posts)<br>
-It may even work on a PCB but do so on your own risk.
-
-## Credits
-
-- [IAmTheChuckster](https://github.com/IAmTheChuckster)  project, testing
-- [Claude](https://claude.ai) (Anthropic)  reverse engineering and patcher code
-- Tested on the CV1k core for the MiSTer FPGA by [Raki](https://www.patreon.com/c/ikamusume/posts)
-
-## Disclaimer
-
-This repository contains a fan-made patch for research and technical analysis. The repository does not intentionally distribute the original game ROM, executable, or game assets. Users must obtain their own copy of the original game. This project is unofficial and is not affiliated with, endorsed by, or authorized by CAVE. All rights to the original game and its associated intellectual property remain with their respective rights holders. No license to third-party copyrighted material is granted by this repository.
+## Maintainers
+1. Edit `patches.json` (`file`, `offset`, `original`, `patched` hex bytes on the raw ROM files).
+2. Commit. The pre-commit hook (`git config core.hooksPath .githooks`) runs `python gigawing_patch.py sync`,
+   which writes the new CRCs into the MRA, embeds the patch in `index.html`, bumps `BUILD` and logs it in `BUILDS.md`.
+   Needs the romset at `roms/gigawing.zip` (gitignored).

@@ -1,0 +1,18 @@
+{
+  "_comment": "Single source of truth for the Giga Wing Overpowered patch. Edit 'patches', then run: python gigawing_patch.py sync",
+  "setname": "gigawingj",
+  "patches": [],
+  "outputs": {
+    "gigawingj.key": "8121a25e",
+    "ggwj.03a": "fdd23b91",
+    "ggwj.04a": "8c6e093c",
+    "ggwj.05a": "43811454",
+    "ggw.01": "4c6351d5",
+    "ggw.11m": "e172acf5",
+    "ggw.12m": "4bee4e8f",
+    "ggw.13m": "105530a4",
+    "ggw.15m": "9e774ab9",
+    "ggw.17m": "466e0ba4",
+    "ggw.19m": "840c8dea"
+  }
+}

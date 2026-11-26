@@ -1,0 +1,373 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<title>Giga Wing Overpowered</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: one narrow working column; four steps in order, each a quiet panel; the file table is the centrepiece. */
+:root {
+  --bg: #f6f1f3; --surface: #ffffff; --sunken: #efe7ea; --fg: #22161b; --muted: #6e5b63;
+  --line: #e2d5da; --accent: #a3123c; --accent-fg: #ffffff; --accent-soft: #f7dfe6;
+  --ok: #1d7446; --ok-soft: #dff1e6; --warn: #985600; --warn-soft: #fbeed8; --bad: #b3261e; --bad-soft: #fbe2df;
+  --display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #130c0f; --surface: #1c1317; --sunken: #241920; --fg: #f2e8eb; --muted: #a8939b;
+  --line: #36262d; --accent: #ff5c86; --accent-fg: #1a0a10; --accent-soft: #3a1823;
+  --ok: #5cc98f; --ok-soft: #13301f; --warn: #f2a93b; --warn-soft: #33240c; --bad: #ff7a70; --bad-soft: #3a1714;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #130c0f; --surface: #1c1317; --sunken: #241920; --fg: #f2e8eb; --muted: #a8939b;
+  --line: #36262d; --accent: #ff5c86; --accent-fg: #1a0a10; --accent-soft: #3a1823;
+  --ok: #5cc98f; --ok-soft: #13301f; --warn: #f2a93b; --warn-soft: #33240c; --bad: #ff7a70; --bad-soft: #3a1714;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--body); padding: 0 16px; }
+.wrap { max-width: 860px; margin: 0 auto; padding-block: 40px 64px; display: flex; flex-direction: column; gap: 20px; }
+header { display: flex; flex-direction: column; gap: 6px; padding-bottom: 8px; }
+.eyebrow { font: 500 12px/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 700 clamp(40px, 8vw, 64px)/0.95 var(--display); letter-spacing: .01em; text-transform: uppercase; margin: 0; text-wrap: balance; }
+.lede { margin: 6px 0 0; max-width: 62ch; color: var(--muted); }
+.privacy { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-top: 4px; }
+.privacy::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
+
+section { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.step { display: flex; align-items: baseline; gap: 12px; }
+.step-no { font: 700 22px/1 var(--display); color: var(--accent); }
+h2 { font: 700 22px/1.1 var(--display); text-transform: uppercase; letter-spacing: .02em; margin: 0; }
+.hint { margin: 0; color: var(--muted); font-size: 14px; max-width: 65ch; }
+
+.drop { border: 2px dashed var(--line); border-radius: 8px; padding: 28px 16px; text-align: center; background: var(--sunken); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 10px; transition: border-color .15s, background .15s; }
+.drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.drop strong { font-weight: 600; }
+.drop .src { font: 13px var(--mono); color: var(--muted); word-break: break-all; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.table-scroll { overflow-x: auto; margin: 0 -4px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font: 500 11px/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 6px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.mono, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 13px; }
+td .role { display: block; font-size: 12px; color: var(--muted); }
+.sha { font: 12px var(--mono); color: var(--muted); word-break: break-all; white-space: normal; min-width: 21ch; }
+.mismatch { color: var(--bad); font-weight: 500; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; font: 500 12px/1 var(--body); padding: 5px 9px; border-radius: 999px; background: var(--sunken); color: var(--muted); }
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+
+.notice { border-radius: 8px; padding: 10px 14px; font-size: 14px; background: var(--sunken); }
+.notice.ok { background: var(--ok-soft); color: var(--ok); }
+.notice.warn { background: var(--warn-soft); color: var(--warn); }
+.notice.bad { background: var(--bad-soft); color: var(--bad); }
+
+details { border: 1px solid var(--line); border-radius: 8px; }
+summary { cursor: pointer; padding: 12px 14px; font-weight: 500; list-style-position: inside; }
+summary .sub { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 6px; }
+.opts { padding: 4px 14px 16px; display: flex; flex-direction: column; gap: 16px; }
+.swaps { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px 16px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label, .lbl { font-size: 13px; color: var(--muted); }
+.field.changed label { color: var(--accent); font-weight: 500; }
+select, input[type=text] { font: 14px var(--body); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 100%; }
+input[type=text] { font-family: var(--mono); letter-spacing: .02em; }
+select:focus-visible, input:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.boot { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
+.boot .field { flex: 1 1 260px; }
+.check { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; padding-bottom: 8px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+button { font: 600 15px/1 var(--body); border-radius: 8px; padding: 12px 18px; cursor: pointer; border: 1px solid transparent; }
+button.primary { background: var(--accent); color: var(--accent-fg); }
+button.secondary { background: var(--surface); color: var(--fg); border-color: var(--line); }
+button.link { background: none; padding: 6px 0; color: var(--accent); font-weight: 500; font-size: 14px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button.primary:not(:disabled):hover { filter: brightness(1.08); }
+button.secondary:not(:disabled):hover { border-color: var(--accent); }
+
+.progress { height: 8px; background: var(--sunken); border-radius: 99px; overflow: hidden; }
+.progress > div { height: 100%; width: 0; background: var(--accent); transition: width .15s; }
+.status { font-size: 13px; color: var(--muted); }
+footer { font-size: 13px; color: var(--muted); text-align: center; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Giga Wing (Japan 990223) &rarr; Overpowered</div>
+    <h1>Giga Wing Overpowered</h1>
+    <p class="lede">Load your own <span class="mono">gigawing</span> or <span class="mono">gigawingj</span> romset. The page checks every file against the known CRC32, applies the patch and builds a complete <span class="mono">gigawingj.zip</span> for MAME and MiSTer.</p>
+    <span class="privacy">Everything runs in your browser. Your ROMs are never uploaded.</span>
+  </header>
+
+  <section aria-labelledby="h-load">
+    <div class="step"><span class="step-no">1</span><h2 id="h-load">Load your romset</h2></div>
+    <label class="drop" id="drop">
+      <input type="file" id="file" class="visually-hidden" multiple>
+      <strong>Drop <span class="mono">gigawing.zip</span> here, or click to choose</strong>
+      <span class="hint">A merged MAME set (with the <span class="mono">gigawingj</span> folder) or a split <span class="mono">gigawingj.zip</span> plus <span class="mono">gigawing.zip</span> both work. Loose files are fine too.</span>
+      <span class="src" id="src" hidden></span>
+    </label>
+  </section>
+
+  <section aria-labelledby="h-check">
+    <div class="step"><span class="step-no">2</span><h2 id="h-check">Check files</h2></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>File</th><th>Size</th><th>Expected CRC32</th><th>Found CRC32</th><th>Status</th></tr></thead>
+        <tbody id="check-body"></tbody>
+      </table>
+    </div>
+    <div class="notice" id="check-msg">Waiting for a romset. The table shows what the page will look for.</div>
+  </section>
+
+  <section aria-labelledby="h-out">
+    <div class="step"><span class="step-no">3</span><h2 id="h-out">Download</h2></div>
+    <div class="row"><span class="status" id="build-status"></span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>File</th><th>CRC32</th><th>SHA-1</th><th>Status</th></tr></thead>
+        <tbody id="out-body"></tbody>
+      </table>
+    </div>
+    <div class="notice" id="out-notes" hidden></div>
+    <div class="row">
+      <button class="primary" id="dl-romset" type="button" disabled>Download complete romset (gigawingj.zip)</button>
+    </div>
+    <p class="hint"><strong>gigawingj.zip</strong> holds every file MAME needs for <span class="mono">gigawingj</span>, with the patch applied. Like any CPS2 game it also needs <span class="mono">qsound.zip</span> in your roms folder. The MiSTer MRA in this repo (<span class="mono">mister/Giga Wing Overpowered.mra</span>) already carries the patched CRCs.</p>
+  </section>
+
+  <footer>No ROM data is included in this page. It only rebuilds files from the dump you supply. <span id="build-foot"></span></footer>
+</div>
+
+<script>
+// Build number of this patcher. Bumped automatically by `python gigawing_patch.py sync` (see BUILDS.md).
+const BUILD = 1;
+// Generated from patches.json by gigawing_patch.py sync. Do not edit by hand.
+// PATCH-DATA-BEGIN
+const PATCH = {
+ "patches": [],
+ "outputs": {
+  "gigawingj.key": {
+   "crc": "8121a25e",
+   "sha1": "6e21e1f639394e0e442f6250a60f9d78e160ec09"
+  },
+  "ggwj.03a": {
+   "crc": "fdd23b91",
+   "sha1": "c805473d3dc6bdb7ce232a9d7181d213544b2e7b"
+  },
+  "ggwj.04a": {
+   "crc": "8c6e093c",
+   "sha1": "a4864b3b54cf648af81f74e2936d2bb8b99d68a9"
+  },
+  "ggwj.05a": {
+   "crc": "43811454",
+   "sha1": "2a9563c840bd934c7e94f434a01686b7ff92e6d2"
+  },
+  "ggw.01": {
+   "crc": "4c6351d5",
+   "sha1": "cef81fb7c4b8cb2ef1f8f3c27982aefbcbe38160"
+  },
+  "ggw.11m": {
+   "crc": "e172acf5",
+   "sha1": "d7b0963d66165f3607d887741c5e7ab952bcf2ff"
+  },
+  "ggw.12m": {
+   "crc": "4bee4e8f",
+   "sha1": "c440b5a38359ec3b8002f39690b79bf78703f5d0"
+  },
+  "ggw.13m": {
+   "crc": "105530a4",
+   "sha1": "3be06c032985ea6bd3805d73a407bf748385087b"
+  },
+  "ggw.15m": {
+   "crc": "9e774ab9",
+   "sha1": "adea1e844f3d9ccd5ad116ff8277f16a96e68d76"
+  },
+  "ggw.17m": {
+   "crc": "466e0ba4",
+   "sha1": "9563455b95d36fafe508290659088b153539cfdf"
+  },
+  "ggw.19m": {
+   "crc": "840c8dea",
+   "sha1": "ea04afce17f00b45d3d2cd5140d0dd7ab4bccc00"
+  }
+ }
+};
+// PATCH-DATA-END
+
+const ROMSET = {   // every file MAME needs for gigawingj: [size, original CRC32]
+  "gigawingj.key": [20, "8121a25e"], "ggwj.03a": [524288, "fdd23b91"], "ggwj.04a": [524288, "8c6e093c"],
+  "ggwj.05a": [524288, "43811454"], "ggw.01": [131072, "4c6351d5"], "ggw.11m": [4194304, "e172acf5"],
+  "ggw.12m": [4194304, "4bee4e8f"], "ggw.13m": [4194304, "105530a4"], "ggw.15m": [4194304, "9e774ab9"],
+  "ggw.17m": [4194304, "466e0ba4"], "ggw.19m": [4194304, "840c8dea"],
+};
+
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = (u8) => { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  const hex8 = (n) => (n >>> 0).toString(16).padStart(8, "0");
+  const sha1 = async (u8) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-1", u8)), (b) => b.toString(16).padStart(2, "0")).join("");
+  const fromHex = (s) => Uint8Array.from(s.match(/../g) || [], (h) => parseInt(h, 16));
+  const fmtSize = (n) => n >= 1048576 ? (n / 1048576) + " MB" : n.toLocaleString() + " B";
+  const patches = PATCH.patches || [], outputs = PATCH.outputs || {};
+  const patchedNames = new Set(patches.map((p) => p.file));
+  const state = { files: null, result: null };
+  function msg(el, cls, text) { el.className = "notice" + (cls ? " " + cls : ""); el.textContent = text; el.hidden = false; }
+
+  // ---------- zip reading ----------
+  async function readZip(buf) {
+    const u8 = new Uint8Array(buf), dv = new DataView(buf);
+    let eocd = -1;
+    for (let i = u8.length - 22; i >= Math.max(0, u8.length - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    if (eocd < 0) throw new Error("This file is not a readable zip.");
+    const count = dv.getUint16(eocd + 10, true); let p = dv.getUint32(eocd + 16, true);
+    const list = [];
+    for (let k = 0; k < count; k++) {
+      if (dv.getUint32(p, true) !== 0x02014b50) throw new Error("The zip directory is damaged.");
+      const e = { method: dv.getUint16(p + 10, true), crc: dv.getUint32(p + 16, true), csize: dv.getUint32(p + 20, true), size: dv.getUint32(p + 24, true), local: dv.getUint32(p + 42, true) };
+      const nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+      e.path = new TextDecoder().decode(u8.subarray(p + 46, p + 46 + nl));
+      p += 46 + nl + xl + cl;
+      if (e.path.endsWith("/")) continue;
+      e.dataStart = e.local + 30 + dv.getUint16(e.local + 26, true) + dv.getUint16(e.local + 28, true);
+      e.read = async () => {
+        const raw = new Uint8Array(buf, e.dataStart, e.csize);
+        if (e.method === 0) return raw.slice();
+        if (e.method === 8) return new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
+        throw new Error(`${e.path} uses an unsupported compression method (${e.method}).`);
+      };
+      list.push(e);
+    }
+    return list;
+  }
+
+  // ---------- zip writing ----------
+  const DOS_TIME = (23 << 11) | (32 << 5), DOS_DATE = ((1996 - 1980) << 9) | (12 << 5) | 24;
+  const deflateRaw = async (u8) => new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer());
+  function writeZip(items) {
+    const parts = [], central = []; let offset = 0;
+    for (const it of items) {
+      const name = new TextEncoder().encode(it.name);
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(8, 8, true); h.setUint16(10, DOS_TIME, true); h.setUint16(12, DOS_DATE, true);
+      h.setUint32(14, it.crc, true); h.setUint32(18, it.data.length, true); h.setUint32(22, it.size, true); h.setUint16(26, name.length, true);
+      parts.push(h, name, it.data);
+      const c = new DataView(new ArrayBuffer(46));
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(10, 8, true); c.setUint16(12, DOS_TIME, true); c.setUint16(14, DOS_DATE, true);
+      c.setUint32(16, it.crc, true); c.setUint32(20, it.data.length, true); c.setUint32(24, it.size, true); c.setUint16(28, name.length, true); c.setUint32(42, offset, true);
+      central.push(c, name);
+      offset += 30 + name.length + it.data.length;
+    }
+    const cdSize = central.reduce((s, x) => s + x.byteLength, 0);
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, items.length, true); end.setUint16(10, items.length, true); end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+    return new Blob([...parts, ...central, end], { type: "application/zip" });
+  }
+
+  // ---------- check ----------
+  function renderCheck(found) {
+    $("check-body").innerHTML = "";
+    for (const [name, [size, crc]] of Object.entries(ROMSET)) {
+      const f = found && found[name];
+      const pill = !found ? '<span class="pill">Waiting</span>' : f ? '<span class="pill ok">OK, data verified</span>' : '<span class="pill bad">Missing</span>';
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td class="mono">${name}<span class="role">${patchedNames.has(name) ? "Patched" : "Copied unchanged"}</span></td><td class="mono">${fmtSize(size)}</td><td class="mono">${crc}</td><td class="mono">${f ? crc : "&mdash;"}</td><td>${pill}</td>`;
+      $("check-body").appendChild(tr);
+    }
+  }
+
+  async function loadFiles(fileList) {
+    const files = Array.from(fileList); if (!files.length) return;
+    state.files = null; state.result = null; $("dl-romset").disabled = true; $("out-notes").hidden = true;
+    $("src").hidden = false; $("src").textContent = files.map((f) => f.name).join(", ");
+    msg($("check-msg"), "", "Reading…");
+    try {
+      const entries = [];   // zips and loose files may be mixed (e.g. gigawingj.zip + gigawing.zip)
+      for (const f of files) {
+        const head = new Uint32Array((await f.slice(0, 4).arrayBuffer()).slice(0))[0];
+        if (head === 0x04034b50) entries.push(...await readZip(await f.arrayBuffer()));
+        else { const d = new Uint8Array(await f.arrayBuffer()); entries.push({ path: f.name, size: d.length, crc: crc32(d), read: async () => d }); }
+      }
+      const found = {};
+      for (const [name, [size, crc]] of Object.entries(ROMSET)) {
+        const e = entries.find((x) => x.size === size && hex8(x.crc) === crc);
+        if (!e) continue;
+        const d = await e.read();
+        if (hex8(crc32(d)) === crc) found[name] = d;
+      }
+      renderCheck(found);
+      const missing = Object.keys(ROMSET).filter((n) => !found[n]);
+      if (missing.length) { msg($("check-msg"), "bad", `Missing or damaged: ${missing.join(", ")}. Load a gigawing romset that includes the gigawingj (Japan 990223) files.`); return; }
+      msg($("check-msg"), "ok", `All ${Object.keys(ROMSET).length} files match.`);
+      state.files = found;
+      await build();
+    } catch (err) { msg($("check-msg"), "bad", err.message || String(err)); }
+  }
+
+  // ---------- patch ----------
+  async function build() {
+    const res = {};
+    for (const [n, d] of Object.entries(state.files)) res[n] = d.slice();
+    try {
+      patches.forEach((p, i) => {
+        const off = Number(p.offset), orig = fromHex(p.original), neu = fromHex(p.patched), d = res[p.file];
+        if (!d) throw new Error(`Patch ${i}: unknown file ${p.file}`);
+        for (let k = 0; k < orig.length; k++) if (d[off + k] !== orig[k]) throw new Error(`Patch ${i} (${p.file} @ ${p.offset}): original bytes don't match.`);
+        d.set(neu, off);
+      });
+      $("out-body").innerHTML = ""; let ok = true;
+      for (const n of Object.keys(ROMSET)) {
+        const crc = hex8(crc32(res[n])), h = await sha1(res[n]);
+        const good = !outputs[n] || (outputs[n].crc === crc && outputs[n].sha1 === h); ok = ok && good;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td class="mono">${n}</td><td class="mono">${crc}</td><td class="sha">${h}</td><td>${good ? '<span class="pill ok">Matches Build ' + BUILD + '</span>' : '<span class="pill bad">Mismatch</span>'}</td>`;
+        $("out-body").appendChild(tr);
+      }
+      if (!ok) throw new Error("The result doesn't match the published checksums. Please report this.");
+      state.result = res; $("dl-romset").disabled = false;
+      $("build-status").textContent = `Build ${BUILD}: ${patches.length} patch${patches.length === 1 ? "" : "es"} applied and verified.`;
+    } catch (err) { msg($("out-notes"), "bad", err.message || String(err)); }
+  }
+
+  function renderExpected() {
+    $("out-body").innerHTML = "";
+    for (const n of Object.keys(ROMSET)) {
+      const o = outputs[n] || { crc: ROMSET[n][1], sha1: "" };
+      $("out-body").insertAdjacentHTML("beforeend", `<tr><td class="mono">${n}</td><td class="mono">${o.crc}</td><td class="sha">${o.sha1}</td><td><span class="pill">Expected</span></td></tr>`);
+    }
+  }
+
+  // ---------- download ----------
+  $("dl-romset").addEventListener("click", async (ev) => {
+    const btn = ev.currentTarget, old = btn.textContent;
+    btn.disabled = true; btn.textContent = "Preparing…";
+    try {
+      const items = [];
+      for (const n of Object.keys(ROMSET).sort()) { const d = state.result[n]; items.push({ name: n, crc: crc32(d), size: d.length, data: await deflateRaw(d) }); }
+      const blob = writeZip(items);
+      if (window.claude && window.claude.use) { const dl = await window.claude.use("downloads"); if (dl) await dl.save({ filename: "gigawingj.zip", data: blob }); }
+      else { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "gigawingj.zip"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000); }
+    } catch (e) { msg($("out-notes"), "warn", "The file couldn't be saved: " + (e.message || e)); }
+    finally { btn.textContent = old; btn.disabled = false; }
+  });
+
+  const drop = $("drop");
+  $("file").addEventListener("change", (e) => loadFiles(e.target.files));
+  ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", (e) => loadFiles(e.dataTransfer.files));
+  if (typeof DecompressionStream === "undefined") msg($("check-msg"), "bad", "This browser is too old to read zip files here. Use a current Chrome, Edge, Firefox or Safari.");
+  $("build-foot").textContent = "Build " + BUILD + ".";
+  renderCheck(null); renderExpected();
+})();
+</script>

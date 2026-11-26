@@ -147,17 +147,17 @@ def cmd_sync(args):
     data = {"patches": cfg["patches"], "outputs": {n: {"crc": outputs[n], "sha1": sha1[n]} for n in outputs}}
     new = DATA_RE.sub(lambda m: m.group(1) + "const PATCH = " + json.dumps(data, indent=1) + ";" + m.group(2), html)
     new = MRA_RE.sub(lambda m: m.group(1) + "const MRA = " + json.dumps(mra) + ";" + m.group(2), new)
-    hook = getattr(args, "staged_change", False)
-    if new != html or hook:
-        build = current_build() + 1
-        new = BUILD_RE.sub(f"const BUILD = {build};", new)
+    build = args.build if args.build else current_build() + (new != html)
+    new = BUILD_RE.sub(f"const BUILD = {build};", new)
+    if new != html:
         INDEX.write_text(new, encoding="utf-8", newline="\n")
-        with BUILDS.open("a", encoding="utf-8") as f:
-            f.write(f"- Build {build} ({datetime.date.today()}): {len(cfg['patches'])} patch(es); "
-                    f"ggwj.03a {outputs['ggwj.03a']}, ggwj.04a {outputs['ggwj.04a']}, ggwj.05a {outputs['ggwj.05a']}\n")
+        line = (f"- Build {build} ({datetime.date.today()}): {len(cfg['patches'])} patch(es); "
+                f"ggwj.03a {outputs['ggwj.03a']}, ggwj.04a {outputs['ggwj.04a']}, ggwj.05a {outputs['ggwj.05a']}")
+        log = [l for l in BUILDS.read_text(encoding="utf-8").splitlines() if not l.startswith(f"- Build {build} ")]
+        BUILDS.write_text("\n".join(log + [line]) + "\n", encoding="utf-8", newline="\n")
         print(f"Patcher updated -> Build {build}")
     else:
-        print(f"Patcher unchanged (Build {current_build()})")
+        print(f"Patcher unchanged (Build {build})")
     print("MRA CRCs:", ", ".join(f"{n}={c}" for n, c in outputs.items()))
 
 
@@ -169,7 +169,7 @@ def main():
     p.add_argument("-o", "--output", default=str(ROOT / "out" / "gigawingop.zip"))
     s = sub.add_parser("sync", help="update MRA CRCs and index.html from patches.json")
     s.add_argument("romset", nargs="?", default=str(DEFAULT_ROM))
-    s.add_argument("--staged-change", action="store_true", help="force a build bump (used by the git hook)")
+    s.add_argument("--build", type=int, help="set this exact build number (the git hook passes last commit + 1)")
     args = ap.parse_args()
     {"patch": cmd_patch, "sync": cmd_sync}[args.cmd](args)
 

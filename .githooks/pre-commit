@@ -1,6 +1,7 @@
 #!/bin/sh
-# Any change to the patcher bumps the build, refreshes the MRA CRCs and logs it in BUILDS.md.
-if git diff --cached --name-only | grep -qE '^(index\.html|gigawing_patch\.py|patches\.json|mister/.*\.mra)$'; then
-  python gigawing_patch.py sync --staged-change || exit 1
-  git add index.html patches.json BUILDS.md "mister/Giga Wing Overpowered.mra"
-fi
+# Any change to the patcher or MRA syncs it: refreshes MRA CRCs, embeds patch + MRA in
+# index.html, sets BUILD to (last committed build + 1) and logs it in BUILDS.md.
+git diff --cached --name-only | grep -qE '^(index\.html|gigawing_patch\.py|patches\.json|mister/.*\.mra)$' || exit 0
+head_build=$(git show HEAD:index.html 2>/dev/null | sed -n 's/.*const BUILD = \([0-9]*\);.*/\1/p' | head -1)
+python gigawing_patch.py sync --build $(( ${head_build:-0} + 1 )) || exit 1
+git add index.html patches.json BUILDS.md mister/*.mra

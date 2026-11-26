@@ -198,7 +198,7 @@ The script reproduces the committed bytes exactly.
 
 ## 5d. Patch: medal magnet (Build 10)
 
-**Behaviour:** every frame, each medal within `MAGNET_RANGE` = `$60` (96 px; was `$30` = 48 px in Build 10) of the ship on both axes moves **25% of the remaining distance** toward it, so it visibly gets pulled in. The game's normal pickup then collects it. Works for P1 and P2, and only while that player is active.
+**Behaviour:** every frame, each medal within `MAGNET_RANGE` = `$60` (96 px; was `$30` = 48 px in Build 10) of the ship on both axes moves **12.5% of the remaining distance** toward it (`MAGNET_SHIFT = 13`; it was 25% / shift 14 in Builds 10-12), so it visibly gets pulled in. The game's normal pickup then collects it. Works for P1 and P2, and only while that player is active.
 
 **Hooks:** the first 6 bytes of each pickup routine (`lea $2DEA(a5),a2` + `move.w (a2),d0` at `$23652`; the P2 copy with `$2EAA` at `$237D6`) become `jsr` to the magnet code at **`$901C0`-`$9023B`** (encrypted, same verified-unused block as rapid fire). The routine:
 
@@ -210,12 +210,12 @@ common: movem.l d0-d5/a0,-(sp)
         lea -$10c0(a5),a0 / bsr pull ; lea -$10bc(a5),a0 / bsr pull
 done:   movem.l (sp)+,d0-d5/a0 ; move.w (a2),d0 ; rts   ; displaced instruction
 pull:   follow next pointers; for each medal: dx = px - X, dy = py - Y;
-        if |dx| < R and |dy| < R: X += dx << 14 ; Y += dy << 14   (25% in 16.16)
+        if |dx| < R and |dy| < R: X += dx << SHIFT ; Y += dy << SHIFT   (SHIFT 13 = 12.5% in 16.16)
 ```
 
-Tune `MAGNET_RANGE` in `build_patches.py` for a bigger or smaller pull radius. The 25% step comes from the `asl.l #8` + `asl.l #6` pair (<<14); <<13 gives 12.5% (slower pull).
+Tune `MAGNET_RANGE` in `build_patches.py` for a bigger or smaller pull radius. Pull speed is `MAGNET_SHIFT` (asl.l #8 + asl.l #SHIFT-8): 16 = 100%, 15 = 50%, 14 = 25%, 13 = 12.5% (current).
 
-**Measured** (`magnet_test.lua`, same scripted game, fresh nvram): medals collected by frame 3600: **216 without magnet → 781 with 48 px (Build 10) → 2101 with 96 px (Build 11)**. Snapshots show `+NN` popups at the ship.
+**Measured** (`magnet_test.lua`, same scripted game, fresh nvram): medals collected by frame 3600: **216 without magnet → 781 with 48 px (Build 10) → 2101 with 96 px (Build 11) → 1791 with 96 px and the slower 12.5% pull (Build 13)**. Snapshots show `+NN` popups at the ship.
 
 ---
 
@@ -291,6 +291,7 @@ See `BUILDS.md` for the generated log. Human summary:
 | 10 | Medal magnet (pull medals within 48 px into the ship) |
 | 11 | Medal magnet radius doubled to 96 px |
 | 12 | Web patcher lists only the patched files in the download table |
+| 13 | Medal magnet pull slowed from 25% to 12.5% per frame |
 
 ---
 

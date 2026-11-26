@@ -65,8 +65,9 @@ SITES = [
 # ---------------- medal magnet ----------------
 MAGNET = 0x901C0        # after the rapid-fire readers ($90100-$901A7), same verified-unused block
 MAGNET_RANGE = 0x60     # pull medals within 96 px (both axes) of the ship
-# Each frame, before the game's own medal pickup check, every medal within MAGNET_RANGE moves 25% of the
-# way to the ship (X/Y += distance << 14 in 16.16 fixed point), so it visibly gets sucked in and the normal
+MAGNET_SHIFT = 13       # pull speed per frame: distance << SHIFT in 16.16 -> 16 = 100%, 15 = 50%, 14 = 25%, 13 = 12.5%
+# Each frame, before the game's own medal pickup check, every medal within MAGNET_RANGE moves a fraction of
+# the way to the ship (X/Y += distance << MAGNET_SHIFT in 16.16 fixed point), so it visibly gets sucked in and the normal
 # pickup collects it. Medals live in two linked lists (heads at -$10C0(a5) and -$10BC(a5)); node layout:
 # +0 next, +6 X (16.16), +$A Y (16.16). Players: P1 object $2DEA(a5), P2 $2EAA(a5), X word +$A, Y word +$E.
 MAGNET_SITES = [(0x23652, 0x2DEA, "P1 medal pickup $23652"), (0x237D6, 0x2EAA, "P2 medal pickup $237d6")]
@@ -96,6 +97,12 @@ def assemble(items, base):
     return out, labels
 
 
+def asl(count, reg):
+    """asl.l #count,dReg (count 1..8; encoding uses 0 for 8)."""
+    assert 1 <= count <= 8
+    return 0xE180 | ((count & 7) << 9) | reg
+
+
 def magnet_code():
     R = MAGNET_RANGE
     items = [
@@ -117,8 +124,8 @@ def magnet_code():
         w(0x3803), w(0x6A02), w(0x4444), w(0x0C44, R), ("b8", 0x6400, "pull"),   # |dx| < R ?
         w(0x3A02), w(0x9A68, 0x000A),                                     # d5 = py - medal Y
         w(0x3805), w(0x6A02), w(0x4444), w(0x0C44, R), ("b8", 0x6400, "pull"),   # |dy| < R ?
-        w(0x48C3), w(0xE183), w(0xED83), w(0xD7A8, 0x0006),               # X += dx << 14 (25%)
-        w(0x48C5), w(0xE185), w(0xED85), w(0xDBA8, 0x000A),               # Y += dy << 14 (25%)
+        w(0x48C3), w(0xE183), w(asl(MAGNET_SHIFT - 8, 3)), w(0xD7A8, 0x0006),   # X += dx << MAGNET_SHIFT
+        w(0x48C5), w(0xE185), w(asl(MAGNET_SHIFT - 8, 5)), w(0xDBA8, 0x000A),   # Y += dy << MAGNET_SHIFT
         ("b8", 0x6000, "pull"),
         ("label", "ret"), w(0x4E75),
     ]

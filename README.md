@@ -1,5 +1,8 @@
 # Giga Wing Overpowered
 
+## Changes
+- **Button 3 = Rapid Shot**: same as Shot (button 1) but auto-fires at 10 Hz (3 frames on, 3 off) while held. MiSTer: mapped in the MRA. MAME's gigawing driver only defines 2 buttons, so button 3 can't be mapped there.
+
 Patch for **Giga Wing (Japan 990223)**, MAME set `gigawingj`.
 
 ## Patch your romset

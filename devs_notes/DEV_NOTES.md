@@ -99,7 +99,7 @@ patches.json ──► gigawing_patch.py sync ──► mister/*.mra (CRCs)
 * Every 68000 word of new code is encrypted, including extension words (immediates, absolute addresses), because they're fetched as program.
 
 ### Free ROM space
-* **$090088-$090817** (1936 bytes of zeros in `ggwj.04a`, file offset $10088), inside the encrypted range. A MAME read tap (`who_reads.lua`, `GW_LO=90088 GW_HI=90817`) over 8000 frames of gameplay saw **zero reads**. The rapid-fire code lives at **$090100-$0901A7**. Space left: $0901A8-$090817.
+* **$090088-$090817** (1936 bytes of zeros in `ggwj.04a`, file offset $10088), inside the encrypted range. A MAME read tap (`who_reads.lua`, `GW_LO=90088 GW_HI=90817`) over 8000 frames of gameplay saw **zero reads**. The rapid-fire code lives at **$090100-$0901A7**. Space used by the magnet: $0901C0-$09023B. Space left: $09023C-$090817.
 * Other zero runs exist ($08B040, $08C168, $08E926, …) but are **unverified**; tap-test before use.
 * $17DBE2-$17F0B4 is zero but above the encryption limit (don't use for code, see above). The game reads $17DF82 and $17EF80 there.
 
@@ -130,6 +130,12 @@ patches.json ──► gigawing_patch.py sync ──► mister/*.mra (CRCs)
 * **RF gauge = word `$8A(a6)`**, range 0..`$1000`. Routine at `$4A5A2`:
   * holding Shot charges it: `addi.w #$C0,$8a(a6)` at `$4A5F4` per autofire tick, capped at `$1000` (Reflect Force);
   * afterwards it **drains** (red bar with the X): `subi.w #$10,$8a(a6)` at `$4A62E` every frame until 0, then RF shows OK again. Draining pauses while bit 3 of `$1(a6)` is set (player hit/respawn).
+
+### Medals
+* **Medal counter** (the `x NNN` under the score): BCD word at `$FF72E6`.
+* Medals are 32-byte nodes in **two linked lists**, heads at `-$10C0(a5)` = `$FF6F40` and `-$10BC(a5)` = `$FF6F44`. Node: `+0` next pointer, `+6` X (16.16), `+$A` Y (16.16), `+$E` X velocity, `+$12` Y velocity. Spawned by `$2BFCC` from a free list at `-$10D8(a5)`.
+* **Pickup:** `$23652` (P1, object `$2DEA(a5)` = `$FFADEA`) / `$237D6` (P2, `$2EAA(a5)` = `$FFAEAA`) build a box from the player's X/Y and size fields `$36`-`$3C`, then `$2BF2E` walks both lists and calls `$2369C` for each medal inside the box (adds its value to score and the counter, shows the `+NN` popup, frees the node).
+* Player and medal coordinates share one space: player X word `+$A`, Y word `+$E`; medal X word `+6`, Y word `+$A`.
 
 ### Frame counter
 * `$FF2090` (word) is incremented once per vblank at $B56. Used as the rapid-fire phase.
@@ -190,6 +196,29 @@ The script reproduces the committed bytes exactly.
 
 ---
 
+## 5d. Patch: medal magnet (Build 10)
+
+**Behaviour:** every frame, each medal within `MAGNET_RANGE` = `$30` (48 px) of the ship on both axes moves **25% of the remaining distance** toward it, so it visibly gets pulled in. The game's normal pickup then collects it. Works for P1 and P2, and only while that player is active.
+
+**Hooks:** the first 6 bytes of each pickup routine (`lea $2DEA(a5),a2` + `move.w (a2),d0` at `$23652`; the P2 copy with `$2EAA` at `$237D6`) become `jsr` to the magnet code at **`$901C0`-`$9023B`** (encrypted, same verified-unused block as rapid fire). The routine:
+
+```asm
+p1:     lea     $2dea(a5),a2 / bra.s common      ; p2: lea $2eaa(a5),a2
+common: movem.l d0-d5/a0,-(sp)
+        (player active test, same as the game) / bne done
+        move.w  $a(a2),d1 ; move.w $e(a2),d2     ; player X, Y
+        lea -$10c0(a5),a0 / bsr pull ; lea -$10bc(a5),a0 / bsr pull
+done:   movem.l (sp)+,d0-d5/a0 ; move.w (a2),d0 ; rts   ; displaced instruction
+pull:   follow next pointers; for each medal: dx = px - X, dy = py - Y;
+        if |dx| < R and |dy| < R: X += dx << 14 ; Y += dy << 14   (25% in 16.16)
+```
+
+Tune `MAGNET_RANGE` in `build_patches.py` for a bigger or smaller pull radius. The 25% step comes from the `asl.l #8` + `asl.l #6` pair (<<14); <<13 gives 12.5% (slower pull).
+
+**Measured** (`magnet_test.lua`, same scripted game, fresh nvram): medals collected by frame 3600: **216 without magnet → 781 with magnet**. Snapshots show `+NN` popups at the ship.
+
+---
+
 ## 5c. Patch: boot screen text (Build 9)
 
 The region/version screen comes from a text table at `$60000+` (data, so **plain, never encrypted**, only word-swapped in the file). Each entry: 2 bytes position (`$0C $yy`), a **25-character field**, `$00`. There's one block per region; gigawingj uses the first (Japan) block:
@@ -222,6 +251,7 @@ b1 3on3off   writes=754
 b3 hook      writes=741-754    # 13 here = rapid fire broken
 ```
 * **Measure, don't eyeball.** Counting writes to QSound shared RAM ($618000-$619FFF) is a reliable shot proxy; screenshots misled us in Build 5.
+* `magnet_test.lua`: samples the medal counter every 100 frames; compare a build with and without the magnet.
 * `rf_cooldown_test.lua`: holds Shot for a Reflect Force and reports the gauge drain rate. Expect 16/frame original, 32/frame from Build 8.
 * **Use a fresh `-nvram_directory` (and `-cfg_directory`) for every run.** The game's EEPROM is saved between runs otherwise and the scripted games diverge (a death at a different moment, for example).
 * `who_reads.lua`: find which instructions read an address (`GW_LO`/`GW_HI` hex env vars), or prove a ROM block is unused.
@@ -258,6 +288,7 @@ See `BUILDS.md` for the generated log. Human summary:
 | 7 | Rapid fire v3 (hook direct port reads): **working, confirmed on MiSTer** |
 | 8 | Reflect Force cooldown 2x faster (gauge drain $10 → $20) |
 | 9 | Boot screen: GIGAWING OVERPOWERED / 261127 |
+| 10 | Medal magnet (pull medals within 48 px into the ship) |
 
 ---
 

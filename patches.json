@@ -46,6 +46,27 @@
     },
     {
       "file": "ggwj.03a",
+      "offset": "0x23652",
+      "original": "1337925434b5",
+      "patched": "ee1444fb690f",
+      "note": "P1 medal pickup $23652: lea $2dea(a5),a2 + move.w (a2),d0 -> jsr $901c0 (medal magnet, CPS2-encrypted)"
+    },
+    {
+      "file": "ggwj.03a",
+      "offset": "0x237d6",
+      "original": "170140f14b63",
+      "patched": "7e9960d1ed4a",
+      "note": "P2 medal pickup $237d6: lea $2eaa(a5),a2 + move.w (a2),d0 -> jsr $901c6 (medal magnet, CPS2-encrypted)"
+    },
+    {
+      "file": "ggwj.04a",
+      "offset": "0x101c0",
+      "original": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "patched": "b55746afb65ed3ca73b3a212cb6d4b141398cf72faecf076f8e092746d573f66961f5f8d7910c57058d7c19f1b976b6b0ea7cbd6ca31c64da14244373ad9db3448b788800fc3d667385f90ad010694656d740807cbeaa3aaebaef69bc497cebfed258100f856ed026f806c42b167fb80a8f9807fb0710870888ac67a",
+      "note": "Medal magnet at $901c0 (CPS2-encrypted): medals within 48 px of the ship move 25% closer each frame (both medal lists), then the game's normal pickup collects them."
+    },
+    {
+      "file": "ggwj.03a",
       "offset": "0x60090",
       "original": "2020202020204720474957414e49204720202020202020200020",
       "patched": "2020494741474957474e4f2045565052574f5245444520200020",
@@ -61,8 +82,8 @@
   ],
   "outputs": {
     "gigawingj.key": "8121a25e",
-    "ggwj.03a": "32865c29",
-    "ggwj.04a": "72e34c13",
+    "ggwj.03a": "f5028c2d",
+    "ggwj.04a": "00944a2a",
     "ggwj.05a": "43811454",
     "ggw.01": "4c6351d5",
     "ggw.11m": "e172acf5",

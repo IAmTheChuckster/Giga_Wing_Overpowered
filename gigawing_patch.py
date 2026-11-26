@@ -2,8 +2,8 @@
 """Giga Wing Overpowered - command line patcher (gigawingj, Japan 990223).
 
 Usage:
-  python gigawing_patch.py patch gigawing.zip [-o out/gigawingj.zip]
-      Verify your romset and write a complete, patched gigawingj.zip
+  python gigawing_patch.py patch gigawing.zip [-o out/gigawingop.zip]
+      Verify your romset and write a complete, patched gigawingop.zip
       (works in MAME; needs qsound.zip next to it like any CPS2 game).
 
   python gigawing_patch.py sync [gigawing.zip]
@@ -117,6 +117,7 @@ def cmd_patch(args):
 
 # ---------------- maintainer: sync ----------------
 BUILD_RE = re.compile(r"const BUILD = (\d+);")
+MRA_RE = re.compile(r"(// MRA-BEGIN\n).*?(\n// MRA-END)", re.S)
 DATA_RE = re.compile(r"(// PATCH-DATA-BEGIN\n).*?(\n// PATCH-DATA-END)", re.S)
 
 
@@ -145,6 +146,7 @@ def cmd_sync(args):
     html = INDEX.read_text(encoding="utf-8")
     data = {"patches": cfg["patches"], "outputs": {n: {"crc": outputs[n], "sha1": sha1[n]} for n in outputs}}
     new = DATA_RE.sub(lambda m: m.group(1) + "const PATCH = " + json.dumps(data, indent=1) + ";" + m.group(2), html)
+    new = MRA_RE.sub(lambda m: m.group(1) + "const MRA = " + json.dumps(mra) + ";" + m.group(2), new)
     hook = getattr(args, "staged_change", False)
     if new != html or hook:
         build = current_build() + 1
@@ -164,7 +166,7 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("patch", help="patch your romset")
     p.add_argument("romset", nargs="?", default=str(DEFAULT_ROM))
-    p.add_argument("-o", "--output", default=str(ROOT / "out" / "gigawingj.zip"))
+    p.add_argument("-o", "--output", default=str(ROOT / "out" / "gigawingop.zip"))
     s = sub.add_parser("sync", help="update MRA CRCs and index.html from patches.json")
     s.add_argument("romset", nargs="?", default=str(DEFAULT_ROM))
     s.add_argument("--staged-change", action="store_true", help="force a build bump (used by the git hook)")

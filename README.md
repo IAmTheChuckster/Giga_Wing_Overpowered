@@ -3,10 +3,10 @@
 Patch for **Giga Wing (Japan 990223)**, MAME set `gigawingj`.
 
 ## Patch your romset
-- **Web:** open `index.html`, drop in your `gigawing.zip`, download `gigawingj.zip`.
-- **Command line:** `python gigawing_patch.py patch path/to/gigawing.zip -o gigawingj.zip`
+- **Web:** open `index.html`, drop in your `gigawing.zip`, download `gigawingop.zip`.
+- **Command line:** `python gigawing_patch.py patch path/to/gigawing.zip -o gigawingop.zip`
 
-Put `gigawingj.zip` (plus `qsound.zip`) in your MAME roms folder. For MiSTer use `mister/Giga Wing Overpowered.mra`.
+For MiSTer, copy `gigawingop.zip` and `Giga Wing Overpowered.mra` (also downloadable from the web patcher). For MAME, rename it to `gigawingj.zip` (MAME finds sets by zip name) and keep `qsound.zip` alongside.
 
 ## Maintainers
 1. Edit `patches.json` (`file`, `offset`, `original`, `patched` hex bytes on the raw ROM files).

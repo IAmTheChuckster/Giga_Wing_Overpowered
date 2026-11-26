@@ -35,12 +35,19 @@
       "offset": "0x10100",
       "original": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
       "patched": "bb5530fcb6a45d6eb7f60432e76b15c5bba7102500c148e061ef0d8013d13fbf1be89ed4ec3046e84c2a789e0f220ef42c8afef3ba0e60768ce450b3cc0bc6c8c413202ad2f96037d106781b1a7ca048e3d24c3b8f4378d6be6da429eb9e2647a923f37783d56b852a9f0dc77b55421b3b27c0015979d8c54aad08ebd026499d1e72ce4971d67d3aa6da751b6ac37f6fef920f108038f1bce2672a4cfd94d3ec14992d732540fadf",
-      "note": "Rapid fire reader at $90100 (unused zero block, CPS2-encrypted): 4 readers, one per patched site: each reads the player input port into the same register as the original, and while Button 3 (bit6, active low) is held forces Shot (bit4) pressed for 3 of every 6 frames (frame counter $FF2090) = 10Hz."
+      "note": "Rapid fire readers at $90100 (unused zero block, CPS2-encrypted): one per patched site; each reads the player input port into the same register as the original and, while Button 3 (bit6, active low) is held, forces Shot (bit4) pressed for 3 of every 6 frames (frame counter $FF2090) = 10Hz."
+    },
+    {
+      "file": "ggwj.03a",
+      "offset": "0x4a62e",
+      "original": "07656daa05fe",
+      "patched": "0765f66e05fe",
+      "note": "Reflect Force cooldown 2x faster: subi.w #$10,$8a(a6) -> subi.w #$20,$8a(a6) at $4A62E (gauge $1000 drains in 128 frames instead of 256). CPS2-encrypted."
     }
   ],
   "outputs": {
     "gigawingj.key": "8121a25e",
-    "ggwj.03a": "84b06757",
+    "ggwj.03a": "ff61cb2f",
     "ggwj.04a": "72e34c13",
     "ggwj.05a": "43811454",
     "ggw.01": "4c6351d5",

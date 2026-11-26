@@ -12,6 +12,7 @@ I did all the testing and planning.
 
 ## Change Notes
 - **Button 3 = Rapid Shot**: works like Shot (button 1) but auto-fires at 10 Hz (3 frames on, 3 off) while held. Button 1 is unchanged, so holding it still gives Reflect Force. On MiSTer, Rapid Shot is mapped to X in the MRA. MAME's gigawing driver only defines 2 buttons, so button 3 can't be mapped in MAME.
+- **Reflect Force cooldown is twice as fast**: after a Reflect Force, the red RF gauge drains in about 2.1 s instead of about 4.3 s, so Reflect Force is available again sooner.
 
 Every patcher build is listed in [BUILDS.md](BUILDS.md). Full technical notes, so anyone can rebuild or extend this project from scratch, are in [devs_notes/DEV_NOTES.md](devs_notes/DEV_NOTES.md).
 

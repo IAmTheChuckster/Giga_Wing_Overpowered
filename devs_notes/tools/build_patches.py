@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
-"""Rebuild the Button 3 rapid-fire patch entries in patches.json from source.
+"""Rebuild ALL patch entries in patches.json from source.
+
+Patches built here (see devs_notes/DEV_NOTES.md):
+  * Button 3 = 10Hz rapid Shot (4 hooked port reads + reader routines at $90100)
+  * Reflect Force cooldown 2x faster (gauge drain $10 -> $20 per frame at $4A62E)
 
 What it does
   1. Builds the CPS2 encrypt/decrypt tools from patches/mmxi_v1.0.0_20250412.zip
      (tools/common.c, trap15, derived from MAME cps2crypt) with gcc
      (native gcc if on PATH, otherwise gcc inside WSL).
-  2. Assembles the 68000 reader routines (hand-encoded below, see devs_notes/README.md).
+  2. Assembles the 68000 code (hand-encoded below, see devs_notes/DEV_NOTES.md).
   3. Inserts them into the decrypted program, re-encrypts with gigawingj.key and
      diffs against the original files, so only the intended bytes change.
   4. Writes the resulting entries into patches.json (replacing all patches).
 
 Then run:  python gigawing_patch.py sync   (or just commit; the pre-commit hook syncs)
 
-Usage:  python devs_notes/tools/build_rapidfire.py [path/to/gigawing.zip]
+Usage:  python devs_notes/tools/build_patches.py [path/to/gigawing.zip]
 Needs:  Python 3, gcc (native or WSL). Optional: `pip install capstone` for a listing.
 """
 import json, shutil, struct, subprocess, sys, tempfile, zipfile
@@ -111,6 +115,14 @@ def main():
                      "each reads the player input port into the same register as the original and, while "
                      "Button 3 (bit6, active low) is held, forces Shot (bit4) pressed for 3 of every 6 frames "
                      "(frame counter $FF2090) = 10Hz.")
+        patches.append(e)
+
+        # Reflect Force cooldown: after a Reflect Force the RF gauge ($8A(a6), 0..$1000) drains with
+        # `subi.w #$10,$8a(a6)` at $4A62E every frame (256 frames). Draining $20 halves the cooldown.
+        RF_DRAIN = 0x20
+        e = patch("ggwj.03a", 0, 0x4A62E, w(0x046E, RF_DRAIN, 0x008A))
+        e["note"] = (f"Reflect Force cooldown 2x faster: subi.w #$10,$8a(a6) -> subi.w #${RF_DRAIN:x},$8a(a6) "
+                     "at $4A62E (gauge $1000 drains in 128 frames instead of 256). CPS2-encrypted.")
         patches.append(e)
 
     cfg_path = ROOT / "patches.json"

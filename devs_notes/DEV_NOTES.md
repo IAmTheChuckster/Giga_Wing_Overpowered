@@ -17,8 +17,8 @@ Target set: **Giga Wing (Japan 990223)**, MAME `gigawingj` (clone of `gigawing`)
 | `BUILDS.md` | One line per patcher build, appended by `sync`. |
 | `.githooks/pre-commit` | Runs `sync` on commits that touch the patcher, `patches.json` or the MRA. |
 | `patches/mmxi_v1.0.0_20250412.zip` | trap15's Mars Matrix Improvement release; its `tools/common.c` is the CPS2 encrypt/decrypt we use. |
-| `devs_notes/tools/build_rapidfire.py` | Rebuilds the rapid-fire patch entries in `patches.json` from source (assemble, encrypt, diff). |
-| `devs_notes/tools/mame/*.lua` | Headless MAME scripts: program dump, read-tap research, rapid-fire regression test. |
+| `devs_notes/tools/build_patches.py` | Rebuilds **all** patch entries in `patches.json` from source (assemble, encrypt, diff). |
+| `devs_notes/tools/mame/*.lua` | Headless MAME scripts: program dump, read-tap research, rapid-fire and RF-cooldown regression tests. |
 | `roms/` | Your own `gigawing.zip` (merged set incl. `gigawingj/`). **Gitignored, never committed.** |
 
 `.gitignore` ignores `roms/`, all `*.zip` except `patches/*.zip`, `out/` and `__pycache__/`.
@@ -124,6 +124,13 @@ patches.json ──► gigawing_patch.py sync ──► mister/*.mra (CRCs)
 
 * `$31A2` tests `$FF7061 & $40` (button 3) only together with Start and a DIP switch; not used in normal play.
 
+### Player object and Reflect Force
+* The P1 player object pointer is in A6 inside the input handler ($428xx-$42Axx); during the test run it was `$FFADEA`. Grab it in Lua from `cpu.state["A6"]` in a read tap on `$FF7068`.
+* Useful fields: `$8D(a6)` autofire counter while Shot is held (every 10 frames sets bit 2 of `$47(a6)`), `$86`/`$98(a6)` long shift-register timers, `$5C(a6)` pointer to state flags.
+* **RF gauge = word `$8A(a6)`**, range 0..`$1000`. Routine at `$4A5A2`:
+  * holding Shot charges it: `addi.w #$C0,$8a(a6)` at `$4A5F4` per autofire tick, capped at `$1000` (Reflect Force);
+  * afterwards it **drains** (red bar with the X): `subi.w #$10,$8a(a6)` at `$4A62E` every frame until 0, then RF shows OK again. Draining pauses while bit 3 of `$1(a6)` is set (player hit/respawn).
+
 ### Frame counter
 * `$FF2090` (word) is incremented once per vblank at $B56. Used as the rapid-fire phase.
 
@@ -155,12 +162,12 @@ The instruction after each original read (`not.b d0` or `andi.w #$10,d6`) sets t
 
 **Patch entries:** 4 encrypted `jsr` words in `ggwj.03a` + the encrypted reader block in `ggwj.04a`. Regenerate them any time with:
 ```
-python devs_notes/tools/build_rapidfire.py      # writes patches.json
+python devs_notes/tools/build_patches.py      # writes patches.json
 python gigawing_patch.py sync                   # or just commit (hook syncs)
 ```
-The script reproduces the committed Build 7 bytes exactly.
+The script reproduces the committed bytes exactly.
 
-**Result CRCs (Build 7):** `ggwj.03a` = `84b06757`, `ggwj.04a` = `72e34c13`, others unchanged.
+**Result CRCs (Build 7, rapid fire only):** `ggwj.03a` = `84b06757`, `ggwj.04a` = `72e34c13`. Current CRCs for all patches are in `patches.json` → `outputs` and in `BUILDS.md`.
 
 **MRA:** `<buttons names="Shot,Force Bomb,Rapid Shot,-,-,-,Start,Coin,Core credits" default="A,B,X,Start,Select,-" count="2"/>`. If X does nothing on MiSTer, redefine the core's buttons in the OSD (a saved mapping overrides MRA defaults); the game's input test should show button 3 when X is pressed.
 
@@ -170,6 +177,16 @@ The script reproduces the committed Build 7 bytes exactly.
 | 5 | Vblank vector → plain code at $17E000, sets bit 4 of `$FF7061` after the IRQ handler | Black screen on MiSTer (code above the encryption limit). In MAME it ran but **didn't actually fire** (RAM copy not used for Shot); a screenshot test wrongly suggested it worked. |
 | 6 | Same logic, code moved to $090100 and encrypted, vectors → hook | Loaded on MiSTer, still no rapid fire (same RAM-copy problem). Also tried hooking $C9C: no effect. |
 | 7 | Hook the four direct port reads (above) | Works in MAME (measured) and confirmed on MiSTer. |
+
+---
+
+## 5b. Patch: Reflect Force cooldown 2x faster (Build 8)
+
+**Behaviour:** after a Reflect Force the gauge drains twice as fast, about 2.1 s instead of 4.3 s (128 instead of 256 frames).
+
+**Change:** one encrypted immediate word in `ggwj.03a`: `subi.w #$10,$8a(a6)` → `subi.w #$20,$8a(a6)` at `$4A62E` (`046E 0010 008A` → `046E 0020 008A`, only the middle word changes after encryption). Built by `build_patches.py` (`RF_DRAIN = 0x20`; change that constant to tune it, e.g. `0x40` = 4x).
+
+**Measured** (`rf_cooldown_test.lua`, fresh nvram): original drain 15.8/frame (about 260 frames), patched 31.5/frame (about 130 frames).
 
 ---
 
@@ -192,6 +209,8 @@ b1 3on3off   writes=754
 b3 hook      writes=741-754    # 13 here = rapid fire broken
 ```
 * **Measure, don't eyeball.** Counting writes to QSound shared RAM ($618000-$619FFF) is a reliable shot proxy; screenshots misled us in Build 5.
+* `rf_cooldown_test.lua`: holds Shot for a Reflect Force and reports the gauge drain rate. Expect 16/frame original, 32/frame from Build 8.
+* **Use a fresh `-nvram_directory` (and `-cfg_directory`) for every run.** The game's EEPROM is saved between runs otherwise and the scripted games diverge (a death at a different moment, for example).
 * `who_reads.lua`: find which instructions read an address (`GW_LO`/`GW_HI` hex env vars), or prove a ROM block is unused.
 * `dump_program.lua`: dumps `program.bin` (data view) and `opcodes.bin` (decrypted) for disassembly, e.g. with capstone (`CS_ARCH_M68K`, `CS_MODE_BIG_ENDIAN|CS_MODE_M68K_000`). Linear-sweep the `opcodes` view below $100000.
 * MAME can take snapshots headless (`manager.machine.video:snapshot()` with `-video none -snapshot_directory …`) if you need an image.
@@ -204,7 +223,7 @@ b3 hook      writes=741-754    # 13 here = rapid fire broken
 1. Find the code: dump with `dump_program.lua`, disassemble the `opcodes` view, use `who_reads.lua` read taps during scripted gameplay to find the real readers/writers (don't assume RAM copies are used).
 2. Pick free space: tap-test a zero block below $100000 (or reuse the rest of $0901A8-$090817).
 3. Write the 68000 code; hook with a same-size replacement (`jsr abs.l` = 6 bytes replaces a 6-byte instruction; re-run displaced instructions in your routine if needed).
-4. Encrypt: decrypt the raw file, insert the code (word-swapped), encrypt, diff against the original (only your bytes may change). `build_rapidfire.py` is a template for this.
+4. Encrypt: decrypt the raw file, insert the code (word-swapped), encrypt, diff against the original (only your bytes may change). `build_patches.py` is a template for this.
 5. Add the entries to `patches.json` (keep existing ones), run `sync` or commit.
 6. Test headless in MAME with a measurable signal, then on MiSTer.
 7. Update **this file** (sections 4, 5/new section, 8), the README *Change Notes*, and the MRA button names if inputs change.
@@ -224,6 +243,7 @@ See `BUILDS.md` for the generated log. Human summary:
 | 5 | Rapid fire v1 (plain code at $17E000): MiSTer black screen |
 | 6 | Rapid fire v2 (encrypted, vector hook): loads, doesn't fire |
 | 7 | Rapid fire v3 (hook direct port reads): **working, confirmed on MiSTer** |
+| 8 | Reflect Force cooldown 2x faster (gauge drain $10 → $20) |
 
 ---
 
@@ -232,5 +252,5 @@ See `BUILDS.md` for the generated log. Human summary:
 Whenever you change the patch, tools, MRA or findings:
 * add or adjust the relevant section here (addresses, free space used, CRCs);
 * add a row to §8;
-* keep `build_rapidfire.py` (or a new build script) able to regenerate every entry in `patches.json`;
+* keep `build_patches.py` (or a new build script) able to regenerate every entry in `patches.json`;
 * mention user-facing changes in the README *Change Notes*.

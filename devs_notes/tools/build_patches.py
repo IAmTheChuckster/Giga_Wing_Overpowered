@@ -65,7 +65,7 @@ SITES = [
 # ---------------- medal magnet ----------------
 MAGNET = 0x901C0        # after the rapid-fire readers ($90100-$901A7), same verified-unused block
 MAGNET_RANGE = 0x60     # pull medals within 96 px (both axes) of the ship
-MAGNET_SHIFT = 13       # pull speed per frame: distance << SHIFT in 16.16 -> 16 = 100%, 15 = 50%, 14 = 25%, 13 = 12.5%
+MAGNET_SHIFT = 14       # pull speed per frame: distance << SHIFT in 16.16 -> 16 = 100%, 15 = 50%, 14 = 25%, 13 = 12.5%
 # Each frame, before the game's own medal pickup check, every medal within MAGNET_RANGE moves a fraction of
 # the way to the ship (X/Y += distance << MAGNET_SHIFT in 16.16 fixed point), so it visibly gets sucked in and the normal
 # pickup collects it. Medals live in two linked lists (heads at -$10C0(a5) and -$10BC(a5)); node layout:
@@ -126,6 +126,8 @@ def magnet_code():
         w(0x3805), w(0x6A02), w(0x4444), w(0x0C44, R), ("b8", 0x6400, "pull"),   # |dy| < R ?
         w(0x48C3), w(0xE183), w(asl(MAGNET_SHIFT - 8, 3)), w(0xD7A8, 0x0006),   # X += dx << MAGNET_SHIFT
         w(0x48C5), w(0xE185), w(asl(MAGNET_SHIFT - 8, 5)), w(0xDBA8, 0x000A),   # Y += dy << MAGNET_SHIFT
+        w(0x42A8, 0x000E), w(0x42A8, 0x0012),                             # clr.l vx, vy: stop its own fall/drift
+                                                                          # (else gravity holds it below the ship)
         ("b8", 0x6000, "pull"),
         ("label", "ret"), w(0x4E75),
     ]

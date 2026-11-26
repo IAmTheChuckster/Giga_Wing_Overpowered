@@ -99,7 +99,7 @@ patches.json ──► gigawing_patch.py sync ──► mister/*.mra (CRCs)
 * Every 68000 word of new code is encrypted, including extension words (immediates, absolute addresses), because they're fetched as program.
 
 ### Free ROM space
-* **$090088-$090817** (1936 bytes of zeros in `ggwj.04a`, file offset $10088), inside the encrypted range. A MAME read tap (`who_reads.lua`, `GW_LO=90088 GW_HI=90817`) over 8000 frames of gameplay saw **zero reads**. The rapid-fire code lives at **$090100-$0901A7**. Space used by the magnet: $0901C0-$09023B. Space left: $09023C-$090817.
+* **$090088-$090817** (1936 bytes of zeros in `ggwj.04a`, file offset $10088), inside the encrypted range. A MAME read tap (`who_reads.lua`, `GW_LO=90088 GW_HI=90817`) over 8000 frames of gameplay saw **zero reads**. The rapid-fire code lives at **$090100-$0901A7**. Space used by the magnet: $0901C0-$090243. Space left: $090244-$090817.
 * Other zero runs exist ($08B040, $08C168, $08E926, …) but are **unverified**; tap-test before use.
 * $17DBE2-$17F0B4 is zero but above the encryption limit (don't use for code, see above). The game reads $17DF82 and $17EF80 there.
 
@@ -198,7 +198,7 @@ The script reproduces the committed bytes exactly.
 
 ## 5d. Patch: medal magnet (Build 10)
 
-**Behaviour:** every frame, each medal within `MAGNET_RANGE` = `$60` (96 px; was `$30` = 48 px in Build 10) of the ship on both axes moves **12.5% of the remaining distance** toward it (`MAGNET_SHIFT = 13`; it was 25% / shift 14 in Builds 10-12), so it visibly gets pulled in. The game's normal pickup then collects it. Works for P1 and P2, and only while that player is active.
+**Behaviour:** every frame, each medal within `MAGNET_RANGE` = `$60` (96 px; was `$30` = 48 px in Build 10) of the ship on both axes moves **25% of the remaining distance** toward it (`MAGNET_SHIFT = 14`; Build 13 tried 12.5%) and **its own velocity is cleared**, so it visibly gets pulled in. The game's normal pickup then collects it. Works for P1 and P2, and only while that player is active.
 
 **Hooks:** the first 6 bytes of each pickup routine (`lea $2DEA(a5),a2` + `move.w (a2),d0` at `$23652`; the P2 copy with `$2EAA` at `$237D6`) become `jsr` to the magnet code at **`$901C0`-`$9023B`** (encrypted, same verified-unused block as rapid fire). The routine:
 
@@ -210,10 +210,13 @@ common: movem.l d0-d5/a0,-(sp)
         lea -$10c0(a5),a0 / bsr pull ; lea -$10bc(a5),a0 / bsr pull
 done:   movem.l (sp)+,d0-d5/a0 ; move.w (a2),d0 ; rts   ; displaced instruction
 pull:   follow next pointers; for each medal: dx = px - X, dy = py - Y;
-        if |dx| < R and |dy| < R: X += dx << SHIFT ; Y += dy << SHIFT   (SHIFT 13 = 12.5% in 16.16)
+        if |dx| < R and |dy| < R: X += dx << SHIFT ; Y += dy << SHIFT   (SHIFT 14 = 25% in 16.16)
+                                   clr.l $E(a0) ; clr.l $12(a0)        ; stop the medal's own drift/fall
 ```
 
-Tune `MAGNET_RANGE` in `build_patches.py` for a bigger or smaller pull radius. Pull speed is `MAGNET_SHIFT` (asl.l #8 + asl.l #SHIFT-8): 16 = 100%, 15 = 50%, 14 = 25%, 13 = 12.5% (current).
+Tune `MAGNET_RANGE` in `build_patches.py` for a bigger or smaller pull radius. Pull speed is `MAGNET_SHIFT` (asl.l #8 + asl.l #SHIFT-8): 16 = 100%, 15 = 50%, 14 = 25%, 13 = 12.5%. Current: 14.
+
+**Why the velocity clear:** medals have velocity at node `+$E` (X) / `+$12` (Y), added every frame, with gravity lowering Y velocity by `$A00`/frame. A falling medal below the ship settles where the pull equals its fall speed and **trails the ship without being collected** (seen on MiSTer in Build 13). Clearing the velocity while in range makes the pull the only motion.
 
 **Measured** (`magnet_test.lua`, same scripted game, fresh nvram): medals collected by frame 3600: **216 without magnet → 781 with 48 px (Build 10) → 2101 with 96 px (Build 11) → 1791 with 96 px and the slower 12.5% pull (Build 13)**. Snapshots show `+NN` popups at the ship.
 
@@ -251,6 +254,7 @@ b1 3on3off   writes=754
 b3 hook      writes=741-754    # 13 here = rapid fire broken
 ```
 * **Measure, don't eyeball.** Counting writes to QSound shared RAM ($618000-$619FFF) is a reliable shot proxy; screenshots misled us in Build 5.
+* `magnet_dwell_test.lua`: longest time any medal stays in magnet range without being collected (player active only). Build 13: 55 frames, 2 medals over 30 (trailing). Build 14: 10 frames, 0.
 * `magnet_test.lua`: samples the medal counter every 100 frames; compare a build with and without the magnet.
 * `rf_cooldown_test.lua`: holds Shot for a Reflect Force and reports the gauge drain rate. Expect 16/frame original, 32/frame from Build 8.
 * **Use a fresh `-nvram_directory` (and `-cfg_directory`) for every run.** The game's EEPROM is saved between runs otherwise and the scripted games diverge (a death at a different moment, for example).
@@ -291,7 +295,8 @@ See `BUILDS.md` for the generated log. Human summary:
 | 10 | Medal magnet (pull medals within 48 px into the ship) |
 | 11 | Medal magnet radius doubled to 96 px |
 | 12 | Web patcher lists only the patched files in the download table |
-| 13 | Medal magnet pull slowed from 25% to 12.5% per frame |
+| 13 | Medal magnet pull slowed from 25% to 12.5% per frame (medals could trail the ship) |
+| 14 | Magnet back to 25%, clears medal velocity while pulling (fixes trailing) |
 
 ---
 

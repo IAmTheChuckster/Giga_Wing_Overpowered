@@ -5,8 +5,8 @@
 --   * makes a fake enemy at (256,128) in unused RAM,
 --   * calls the cancel routine directly (A6 = fake enemy, interrupts masked) returning to a
 --     "bra.s *" stub in RAM, and on the next frame checks the result.
--- Layout (offset from the enemy):  A +20,0 (inside 32)  B +34,0 (14 from A)  C +48,0 (14 from B)
---                                  D +70,0 (22 from C: outside 16)  E 0,+40 (outside all)
+-- Layout (offset from the enemy):  A +55,0 (inside 64)  B +68,0 (outside 64, 13 from A)  C +81,0 (13 from B)
+--                                  D +103,0 (22 from C: outside 16)  E 0,+70 (outside all)
 -- Expected: A,B,C cancelled (chain), D,E kept, bullet count -3, 3 small medals spawned.
 -- Output: $HOME/gw/cunit.txt  ("PASS ..." or "FAIL ...")
 --
@@ -39,7 +39,7 @@ emu.register_frame_done(function()
   if n == 2400 then
     sp:write_u32(HEAD_SPAWN, 0) sp:write_u32(HEAD_MOVE, 0)      -- set real bullets aside
     local ex, ey = 0x100, 0x80
-    local layout = { {"A", 20, 0}, {"B", 34, 0}, {"C", 48, 0}, {"D", 70, 0}, {"E", 0, 40} }
+    local layout = { {"A", 55, 0}, {"B", 68, 0}, {"C", 81, 0}, {"D", 103, 0}, {"E", 0, 70} }
     for _, b in ipairs(layout) do
       local node = sp:read_u32(FREE)
       sp:write_u32(FREE, sp:read_u32(node))                     -- pop a free node

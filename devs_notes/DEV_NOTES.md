@@ -99,7 +99,7 @@ patches.json ──► gigawing_patch.py sync ──► mister/*.mra (CRCs)
 * Every 68000 word of new code is encrypted, including extension words (immediates, absolute addresses), because they're fetched as program.
 
 ### Free ROM space
-* **$090088-$090817** (1936 bytes of zeros in `ggwj.04a`, file offset $10088), inside the encrypted range. A MAME read tap (`who_reads.lua`, `GW_LO=90088 GW_HI=90817`) over 8000 frames of gameplay saw **zero reads**. The rapid-fire code lives at **$090100-$0901A7**. Space used by the magnet: $0901C0-$090243; bullet cancel: $090250-$0903A7. Space left: $0903A8-$090817.
+* **$090088-$090817** (1936 bytes of zeros in `ggwj.04a`, file offset $10088), inside the encrypted range. A MAME read tap (`who_reads.lua`, `GW_LO=90088 GW_HI=90817`) over 8000 frames of gameplay saw **zero reads**. The rapid-fire code lives at **$090100-$0901A7**. Space used by the magnet: $0901C0-$090243; bullet cancel: $090250-$09038D. Space left: $09038E-$090817.
 * Other zero runs exist ($08B040, $08C168, $08E926, …) but are **unverified**; tap-test before use.
 * $17DBE2-$17F0B4 is zero but above the encryption limit (don't use for code, see above). The game reads $17DF82 and $17EF80 there.
 

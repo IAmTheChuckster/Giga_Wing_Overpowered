@@ -138,7 +138,7 @@ def magnet_code():
 # ---------------- bullet cancel ----------------
 CANCEL = 0x90250          # after the magnet code, same verified-unused block
 CANCEL_SITE = 0x67E5A     # in the common "enemy destroyed" routine $67E52: btst #4,$1(a6) (6 bytes, kill path only)
-CANCEL_KILL_R = 24        # bullets within 24 px of the dead enemy are cancelled
+CANCEL_KILL_R = 32        # bullets within 32 px of the dead enemy are cancelled
 CANCEL_CHAIN_R = 16       # ...and any bullet within 16 px of a cancelled bullet, repeatedly (chain)
 SMALL_MEDAL = 8           # medal type used by the game's own bullet->medal conversion ($23D50)
 # Enemy bullets: two linked lists (heads -$10E4(a5) spawning, -$10E0(a5) moving), count -$10D4(a5),

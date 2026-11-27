@@ -204,12 +204,12 @@ The script reproduces the committed bytes exactly.
 
 ## 5e. Patch: bullet cancels (Build 15)
 
-**Behaviour:** when an enemy is destroyed, every enemy bullet within **24 px** (circular distance) of it is cancelled; then every bullet within **16 px** of any cancelled bullet is cancelled too, repeatedly, so clusters chain. Each cancelled bullet becomes a **small medal** (type 8) at its position, with the same random pop as the game's own reflect conversion.
+**Behaviour:** when an enemy is destroyed, every enemy bullet within **32 px** (circular distance; 24 px in Build 15) of it is cancelled; then every bullet within **16 px** of any cancelled bullet is cancelled too, repeatedly, so clusters chain. Each cancelled bullet becomes a **small medal** (type 8) at its position, with the same random pop as the game's own reflect conversion.
 
 **Hook:** `btst #4,$1(a6)` (6 bytes) at `$67E5A` in the enemy-destroyed routine → `jsr $90250`. The routine runs the cancel, then executes the displaced `btst` and returns; `rts` keeps the flags for the game's following `bne`.
 
 **Routine** at `$90250`-`$9031B` (encrypted):
-1. Save all registers, centre = enemy X/Y, R² = 24².
+1. Save all registers, centre = enemy X/Y, R² = 32² (`CANCEL_KILL_R`).
 2. `gather`: walk both bullet lists (`-$10E4`, `-$10E0`) with a previous-link pointer; any bullet with dx²+dy² < R² is unlinked and appended to a private "cancelled" list.
 3. Chain: walk the cancelled list from its head; for each bullet, `gather` again with centre = that bullet and R² = 16². Newly found bullets are appended to the end, so they're processed in turn (breadth-first).
 4. For each cancelled bullet: read X/Y, free the node exactly like the game (push on `-$10D8`, `subq.w #1,-$10D4`), then call `$2B60E` with type 8 and random velocity. Freeing first means the spawner can reuse the node.
@@ -218,7 +218,7 @@ The script reproduces the committed bytes exactly.
 Settings in `build_patches.py`: `CANCEL_KILL_R`, `CANCEL_CHAIN_R`, `SMALL_MEDAL`. Cost is O(cancelled × bullets) only on frames where an enemy dies.
 
 **Tests:**
-* `cancel_unit_test.lua` (deterministic): builds a fake enemy plus bullets A (+20 px), B (+34), C (+48), D (+70), E (0,+30) and calls the routine. Result: **PASS: A,B,C cancelled (chain), D,E kept, count −3, medals +3.** (The harness can't return cleanly from the forced call on MAME's cycle-accurate 68000; a control run that jumps straight to the stub without the cancel code crashes the same way, so the return isn't checked. See the script header.)
+* `cancel_unit_test.lua` (deterministic): builds a fake enemy plus bullets A (+20 px), B (+34), C (+48), D (+70), E (0,+40) and calls the routine. Result: **PASS: A,B,C cancelled (chain), D,E kept, count −3, medals +3.** (The harness can't return cleanly from the forced call on MAME's cycle-accurate 68000; a control run that jumps straight to the stub without the cancel code crashes the same way, so the return isn't checked. See the script header.)
 * `cancel_test.lua` (real play): counts bullets freed by the routine. In the scripted stage-1 game it cancelled 3 bullets in 2 kills; the game kept running normally (no trap, frame counter advancing). Medals collected: 2101 → 2224.
 
 ---
@@ -326,6 +326,7 @@ See `BUILDS.md` for the generated log. Human summary:
 | 13 | Medal magnet pull slowed from 25% to 12.5% per frame (medals could trail the ship) |
 | 14 | Magnet back to 25%, clears medal velocity while pulling (fixes trailing) |
 | 15 | Bullet cancels: enemy kill turns bullets within 24 px (chain 16 px) into small medals |
+| 16 | Bullet cancel kill radius widened 24 → 32 px |
 
 ---
 

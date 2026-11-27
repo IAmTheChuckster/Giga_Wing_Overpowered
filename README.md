@@ -2,9 +2,7 @@
 
 A gameplay patch for `Giga Wing (Japan 990223)` (MAME set `gigawingj`)<br>
 This repository holds only source, tools and notes. **No ROM data is included**; you patch your own legally owned dump.
-## To Do:
-
-   
+  
 ## About
 Why did I make this? Because it's fun and for my own personal research to see the capabilities of Claude.<br>
 While Claude was used I put effort in making sure there are balanced gameplay.<br>

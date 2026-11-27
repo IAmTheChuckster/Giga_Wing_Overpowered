@@ -1,7 +1,7 @@
 -- Headless bullet-cancel test for gigawingj (MAME autoboot script).
 --
 -- Counts enemy bullets freed by the bullet-cancel routine: a write tap on the enemy-bullet
--- counter (-$10D4(a5) = $FF6F2C) where the writing PC is inside the cancel code ($90250-$9031B).
+-- counter (-$10D4(a5) = $FF6F2C) where the writing PC is inside the cancel code ($90250-$9038F).
 -- Reports total cancelled bullets, frames with a cancel, the biggest cancel in one frame, and the
 -- medals collected (BCD counter $FF72E6), over the same scripted game as magnet_test.lua.
 -- Optional: GW_SNAP=1 takes a snapshot on the frame with the biggest cancel so far (and the next).
@@ -12,7 +12,7 @@ local n, total, frames, best, this = 0, 0, 0, 0, 0
 local snap = os.getenv("GW_SNAP") == "1"
 tap = sp:install_write_tap(0xff6f2c, 0xff6f2d, "cnt", function()
   local pc = cpu.state["PC"].value
-  if pc >= 0x90250 and pc < 0x9031c then this = this + 1 end
+  if pc >= 0x90250 and pc < 0x90390 then this = this + 1 end
 end)
 local f = {}
 for _, p in pairs(manager.machine.ioport.ports) do for nm, fl in pairs(p.fields) do f[nm] = fl end end

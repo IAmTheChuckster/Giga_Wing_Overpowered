@@ -99,7 +99,7 @@ patches.json ──► gigawing_patch.py sync ──► mister/*.mra (CRCs)
 * Every 68000 word of new code is encrypted, including extension words (immediates, absolute addresses), because they're fetched as program.
 
 ### Free ROM space
-* **$090088-$090817** (1936 bytes of zeros in `ggwj.04a`, file offset $10088), inside the encrypted range. A MAME read tap (`who_reads.lua`, `GW_LO=90088 GW_HI=90817`) over 8000 frames of gameplay saw **zero reads**. The rapid-fire code lives at **$090100-$0901A7**. Space used by the magnet: $0901C0-$090243; bullet cancel: $090250-$09031B. Space left: $09031C-$090817.
+* **$090088-$090817** (1936 bytes of zeros in `ggwj.04a`, file offset $10088), inside the encrypted range. A MAME read tap (`who_reads.lua`, `GW_LO=90088 GW_HI=90817`) over 8000 frames of gameplay saw **zero reads**. The rapid-fire code lives at **$090100-$0901A7**. Space used by the magnet: $0901C0-$090243; bullet cancel: $090250-$0903A7. Space left: $0903A8-$090817.
 * Other zero runs exist ($08B040, $08C168, $08E926, …) but are **unverified**; tap-test before use.
 * $17DBE2-$17F0B4 is zero but above the encryption limit (don't use for code, see above). The game reads $17DF82 and $17EF80 there.
 
@@ -204,21 +204,33 @@ The script reproduces the committed bytes exactly.
 
 ## 5e. Patch: bullet cancels (Build 15)
 
-**Behaviour:** when an enemy is destroyed, every enemy bullet within **64 px** (circular distance; 24 px in Build 15, 32 px in Build 16) of it is cancelled; then every bullet within **16 px** of any cancelled bullet is cancelled too, repeatedly, so clusters chain. Each cancelled bullet becomes a **small medal** (type 8) at its position, with the same random pop as the game's own reflect conversion.
+**Behaviour:** when an enemy is destroyed, every enemy bullet **over its hitbox or within 64 px of the hitbox edge** is cancelled, for every part of a multi-part enemy (radius: 24 px in Build 15, 32 px in 16, 64 px from 17; measured from the centre point until Build 18); then every bullet within **16 px** of any cancelled bullet is cancelled too, repeatedly, so clusters chain. Each cancelled bullet becomes a **small medal** (type 8) at its position, with the same random pop as the game's own reflect conversion.
 
-**Hook:** `btst #4,$1(a6)` (6 bytes) at `$67E5A` in the enemy-destroyed routine → `jsr $90250`. The routine runs the cancel, then executes the displaced `btst` and returns; `rts` keeps the flags for the game's following `bne`.
+**Hooks (Build 18; Build 15-17 had only the first):** every kill reaches at least one of these, A6 = destroyed object:
+| Site | Displaced code | Entry | Notes |
+|---|---|---|---|
+| `$67E5A` | `btst #4,$1(a6)` | `btst1` | common enemy-destroyed routine `$67E52`; walks parts, so `(a3)` = part count − 1 |
+| `$24B5C` | `btst #4,$1(a6)` | `btst0` | second destroy routine; single object |
+| `$57458` | `btst #4,(a6)` + `beq.b $57464` | `score` | kill-score routine, 40+ enemy/boss callers; the entry re-runs the `btst` and adds 6 to its return address when the `beq` would branch. `d0` (score) is preserved |
+
+A kill that passes two hooks runs the cancel twice; the second pass finds nothing. Each entry preserves `d0`, runs the core, then the displaced code; `rts` keeps the flags.
+
+**Hitbox:** same as the shot collision at `$23C7E`: X from `X−$18` to `X+$16`, Y from `Y−$1C` to `Y+$1A` (object words). Distance = from the bullet to the nearest point of the box (0 inside). Multi-part enemies are consecutive `$80`-byte objects (capped at `CANCEL_MAX_PARTS` = 8).
+
+**Bullet coverage:** the player-hit check (`$29DE8`) only tests `-$10E0`; fresh bullets in `-$10E4` move there. Other lists sharing the node pool are effects, not bullets: `-$10DC` = vanishing bullets (the game's own clear-all), `-$10B8` / `-$10CC` = hit/spark effects, `-$10A8` / `-$10D0` / `-$10B0` = other sprites.
 
 **Routine** at `$90250`-`$9031B` (encrypted):
-1. Save all registers, centre = enemy X/Y, R² = 64² (`CANCEL_KILL_R`).
-2. `gather`: walk both bullet lists (`-$10E4`, `-$10E0`) with a previous-link pointer; any bullet with dx²+dy² < R² is unlinked and appended to a private "cancelled" list.
-3. Chain: walk the cancelled list from its head; for each bullet, `gather` again with centre = that bullet and R² = 16². Newly found bullets are appended to the end, so they're processed in turn (breadth-first).
+1. Save all registers. For each part: box from its hitbox fields, R² = 64² (`CANCEL_KILL_R`).
+2. `gather`: walk both bullet lists (`-$10E4`, `-$10E0`) with a previous-link pointer; any bullet whose distance² to the box is < R² is unlinked and appended to a private "cancelled" list.
+3. Chain: walk the cancelled list from its head; for each bullet, `gather` again with a zero-size box at that bullet and R² = 16². Newly found bullets are appended to the end, so they're processed in turn (breadth-first).
 4. For each cancelled bullet: read X/Y, free the node exactly like the game (push on `-$10D8`, `subq.w #1,-$10D4`), then call `$2B60E` with type 8 and random velocity. Freeing first means the spawner can reuse the node.
 5. Restore registers, displaced `btst`, `rts`.
 
 Settings in `build_patches.py`: `CANCEL_KILL_R`, `CANCEL_CHAIN_R`, `SMALL_MEDAL`. Cost is O(cancelled × bullets) only on frames where an enemy dies.
 
 **Tests:**
-* `cancel_unit_test.lua` (deterministic): builds a fake enemy plus bullets A (+55 px, inside 64), B (+68, outside 64, 13 px from A), C (+81), D (+103, 22 px from C), E (0,+70) and calls the routine. Result: **PASS: A,B,C cancelled (chain), D,E kept, count −3, medals +3.** (The harness can't return cleanly from the forced call on MAME's cycle-accurate 68000; a control run that jumps straight to the stub without the cancel code crashes the same way, so the return isn't checked. See the script header.)
+* `cancel_unit_test.lua` (deterministic): builds a fake enemy with a hitbox 40 px left/right of its X, plus bullets A (+100 px: 60 px from the box edge), B (+113), C (+126), D (+148, 22 px from C), E (0,+70) and calls the routine. Result: **PASS: A,B,C cancelled (chain), D,E kept, count −3, medals +3.** (The harness can't return cleanly from the forced call on MAME's cycle-accurate 68000; a control run that jumps straight to the stub without the cancel code crashes the same way, so the return isn't checked. See the script header.)
+* `cancel_coverage_test.lua`: distinct kills handled + bullets cancelled. Scripted stage 1: Build 17 = 54 kills / 3 bullets; Build 18 = 56 kills / 6 bullets (stage 1 rarely has bullets near a kill; later stages and bosses use the extra hooks).
 * `cancel_test.lua` (real play): counts bullets freed by the routine. In the scripted stage-1 game it cancelled 3 bullets in 2 kills; the game kept running normally (no trap, frame counter advancing). Medals collected: 2101 → 2224.
 
 ---
@@ -281,7 +293,7 @@ b1 3on3off   writes=754
 b3 hook      writes=741-754    # 13 here = rapid fire broken
 ```
 * **Measure, don't eyeball.** Counting writes to QSound shared RAM ($618000-$619FFF) is a reliable shot proxy; screenshots misled us in Build 5.
-* `cancel_unit_test.lua` / `cancel_test.lua`: bullet cancel, see §5e.
+* `cancel_unit_test.lua` / `cancel_test.lua` / `cancel_coverage_test.lua`: bullet cancel, see §5e.
 * `magnet_dwell_test.lua`: longest time any medal stays in magnet range without being collected (player active only). Build 13: 55 frames, 2 medals over 30 (trailing). Build 14: 10 frames, 0.
 * `magnet_test.lua`: samples the medal counter every 100 frames; compare a build with and without the magnet.
 * `rf_cooldown_test.lua`: holds Shot for a Reflect Force and reports the gauge drain rate. Expect 16/frame original, 32/frame from Build 8.
@@ -328,6 +340,7 @@ See `BUILDS.md` for the generated log. Human summary:
 | 15 | Bullet cancels: enemy kill turns bullets within 24 px (chain 16 px) into small medals |
 | 16 | Bullet cancel kill radius widened 24 → 32 px |
 | 17 | Bullet cancel kill radius doubled 32 → 64 px |
+| 18 | Bullet cancel on all kill paths ($67E5A, $24B5C, $57458), measured from the enemy hitbox (all parts) |
 
 ---
 

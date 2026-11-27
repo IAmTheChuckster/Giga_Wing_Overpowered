@@ -151,7 +151,7 @@ footer { font-size: 13px; color: var(--muted); text-align: center; }
 
 <script>
 // Build number of this patcher. Bumped automatically by `python gigawing_patch.py sync` (see BUILDS.md).
-const BUILD = 17;
+const BUILD = 18;
 // Generated from patches.json by gigawing_patch.py sync. Do not edit by hand.
 // PATCH-DATA-BEGIN
 const PATCH = {
@@ -224,13 +224,27 @@ const PATCH = {
    "offset": "0x67e5a",
    "original": "dd0f0ba5f05d",
    "patched": "dc8011035d96",
-   "note": "Enemy destroyed $67E52: btst #4,$1(a6) at $67e5a -> jsr $90250 (bullet cancel, CPS2-encrypted)"
+   "note": "Bullet cancel hook in the common enemy-destroyed routine $67E52: btst #4,$1(a6) at $67e5a -> jsr $90250 (CPS2-encrypted)"
+  },
+  {
+   "file": "ggwj.03a",
+   "offset": "0x24b5c",
+   "original": "0ce68b0a09e4",
+   "patched": "774b7a1dadae",
+   "note": "Bullet cancel hook in the second enemy-destroyed routine $24B3x (single object): btst #4,$1(a6) at $24b5c -> jsr $90262 (CPS2-encrypted)"
+  },
+  {
+   "file": "ggwj.03a",
+   "offset": "0x57458",
+   "original": "7ad17ebee37e",
+   "patched": "7d1f02adaf5d",
+   "note": "Bullet cancel hook in the kill-score routine $57458 (40+ enemy/boss callers): btst #4,(a6) + beq.b $57464 at $57458 -> jsr $90274 (CPS2-encrypted)"
   },
   {
    "file": "ggwj.04a",
    "offset": "0x10250",
-   "original": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-   "patched": "0157a7cc2fffa70a4b3778b85ffc4a3a6dde6bc644c6a719383be4ea804133b69208487711bdaf85466d24178324acd5f6596e1d1d8ae82f626b9d549a13e5e204d53359f7ac7844e6fa3377cba70b5a0d9973982413260ea0dbbd6101f66c6d5aa66c53281b6aa2c97065cc918cc590caff7e8a820f40285ed64cb8fc9c33b9c898a3949f52a50b0b912b3706bd66eb3d82e4ffbe666d6423d7c4b2d56544852ffc9609812ded5995c9bc5776ba96f4b296fa6e7a3ad38f6b081204604af6444317f18da4465886fd6f110b",
+   "original": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+   "patched": "cd98c0530f0fbb7b24e03c300bc5de57ace6378192c4a719823a3c3b0125ed6c58d83a76ef253237e9eed6d0a4683ff2b12d552cb3f90c47f55e7a0e2a1b160aff6482b122da5a0025e03f1f796c94c552dc6f2b4104d5b605f9cab03b92df30727445bcb0817931c978d82bc8115939b0ac5319a478dd5cf6aa022a4a447f743a2994a58669a8123741ea139b930ab13d8237e53f8ed0b696f6b4d0270751483c01e1631769079995c9e56e66c4cae7ecf9245ea40837e21aefc65e4d9076d192c4c6e89835432c10251c01460d7de80639e51c83146ea7496cb7de44c7efa56d395739b2c59f98409476290600663e25ed7fcc22f5cf8999b16a928d766f5f15fdefcc032d9587a7e7c6676963b2d6a61e2f00b635c4178b5ce0e4af913df8ffca742dfb1bb7482f0f3573a1487cacff3a61b64f82ba8eee5535b512a9",
    "note": "Bullet cancel at $90250 (CPS2-encrypted): on enemy kill, enemy bullets within 64 px, then any within 16 px of a cancelled bullet (chained), become small medals (type 8)."
   },
   {
@@ -254,12 +268,12 @@ const PATCH = {
    "sha1": "6e21e1f639394e0e442f6250a60f9d78e160ec09"
   },
   "ggwj.03a": {
-   "crc": "6238b9de",
-   "sha1": "2661b937cb332c9555fae590efa6efe7f8e6ab3e"
+   "crc": "7ad2e058",
+   "sha1": "11c0ee8bab4671369852c9bf384fda3e2a12431f"
   },
   "ggwj.04a": {
-   "crc": "f148e056",
-   "sha1": "719a68785e45fed1cdda4f1f0a210264685d356f"
+   "crc": "1c4485e7",
+   "sha1": "d7ce917b8f152cb40637e6dbdc9c034a1aa77142"
   },
   "ggwj.05a": {
    "crc": "43811454",
@@ -297,7 +311,7 @@ const PATCH = {
 };
 // PATCH-DATA-END
 // MRA-BEGIN
-const MRA = "<!--          FPGA arcade hardware by Jotego\n\n              This core is available for hardware compatible with MiST and MiSTer\n              Other FPGA systems may be supported by the time you read this.\n              This work is not mantained by the MiSTer project. Please contact the\n              core author for issues and updates.\n\n              (c) Jose Tejada, 2026. Please support this research\n              Patreon: https://patreon.com/jotego\n\n              The author does not endorse or participate in illegal distribution\n              of copyrighted material. This work can be used with compatible\n              software. This software can be homebrew projects or legally\n              obtained memory dumps of compatible games.\n\n              This file license is GNU GPLv2.\n              You can read the whole license file in\n              https://opensource.org/licenses/gpl-2.0.php\n\n-->\n\n<misterromdescription>\n    <about author=\"jotego\" webpage=\"https://patreon.com/jotego\" twitter=\"@topapate\" source=\"https://jotego/jtcores\"/>\n    <rotation>horizontal</rotation>\n    <name>Giga Wing (Japan 990223)</name>\n    <setname>gigawingop</setname>\n    <mameversion>0282</mameversion>\n    <year>1999</year>\n    <manufacturer>Takumi (Capcom license)</manufacturer>\n    <players>2</players>\n    <rbf>jtcps2</rbf>\n    <joystick>8</joystick>\n    <region>World</region>\n    <rom index=\"0\" zip=\"gigawingop.zip|qsound.zip\" md5=\"None\" address=\"0x30000000\" asm_md5=\"c571194944d0f14c69a9a5e55187bb42\">\n        <!--  -->\n        <part>\n            00 06 80 06 80 26 80 66\n            FF FF FF FF FF FF FF FF\n            32 FF 00 02 04 06 26 28\n            2A 2C 2E 00 00 30 02 04\n            08 30 FF FF FF FF FF FF\n            FF FF FF FF </part>\n        <!-- key - starts at 0x0 - length 0x14 (5 bits) -->\n        <part name=\"gigawingj.key\" crc=\"8121a25e\"/>\n        <!-- maincpu - starts at 0x14 - length 0x180000 (21 bits) -->\n        <part name=\"ggwj.03a\" crc=\"6238b9de\"/>\n        <part name=\"ggwj.04a\" crc=\"f148e056\"/>\n        <part name=\"ggwj.05a\" crc=\"43811454\"/>\n        <!-- audiocpu - starts at 0x180014 - length 0x20000 (17 bits) -->\n        <part name=\"ggw.01\" crc=\"4c6351d5\"/>\n        <!-- qsound - starts at 0x1A0014 - length 0x800000 (23 bits) -->\n        <interleave output=\"16\">\n            <part name=\"ggw.11m\" crc=\"e172acf5\" map=\"12\"/>\n        </interleave>\n        <interleave output=\"16\">\n            <part name=\"ggw.12m\" crc=\"4bee4e8f\" map=\"12\"/>\n        </interleave>\n        <!-- gfx - starts at 0x9A0014 - length 0x1000000 (24 bits) -->\n        <interleave output=\"64\">\n            <part name=\"ggw.13m\" crc=\"105530a4\" map=\"00000021\"/>\n            <part name=\"ggw.15m\" crc=\"9e774ab9\" map=\"00002100\"/>\n            <part name=\"ggw.17m\" crc=\"466e0ba4\" map=\"00210000\"/>\n            <part name=\"ggw.19m\" crc=\"840c8dea\" map=\"21000000\"/>\n        </interleave>\n        <!-- firmware - starts at 0x19A0014 - length 0x2000 (13 bits) -->\n        <part name=\"dl-1425.bin\" crc=\"d6cf5ef5\" length=\"0x2000\"/>\n        <!-- Total 0x19A2014 bytes - 26248 kBytes -->\n    </rom>\n    <rom index=\"2\">\n        <part>\n00 00 01 00 00 00 00 02 00 00 00 00 00 00 00 00\n03 01 00 02 00 00 00 00 00 00 00 00 00 00 00 00\n11 98 02 30 10 97 FF 31 41 43 47 50 55 47 41 53\n00 00 01 00 00 00 00 02 00 00 00 00 00 00 00 00\n03 01 00 02 00 00 00 00 00 00 00 00 00 00 00 00\n11 98 02 30 10 97 FF 31 41 43 47 50 55 47 41 53\n00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n</part>\n    </rom>\n    <nvram index=\"2\" size=\"128\"/>\n    <rom index=\"1\">\n        <part>00 80</part>\n    </rom>\n    <switches page_id=\"1\" page_name=\"Switches\" base=\"16\" default=\"ff,ff\">\n        <DSWA/>\n        <DSWB/>\n        <DSWC/>\n    </switches>\n    <buttons names=\"Shot,Force Bomb,Rapid Shot,-,-,-,Start,Coin,Core credits\" default=\"A,B,X,Start,Select,-\" count=\"2\"/>\n</misterromdescription>\n";
+const MRA = "<!--          FPGA arcade hardware by Jotego\n\n              This core is available for hardware compatible with MiST and MiSTer\n              Other FPGA systems may be supported by the time you read this.\n              This work is not mantained by the MiSTer project. Please contact the\n              core author for issues and updates.\n\n              (c) Jose Tejada, 2026. Please support this research\n              Patreon: https://patreon.com/jotego\n\n              The author does not endorse or participate in illegal distribution\n              of copyrighted material. This work can be used with compatible\n              software. This software can be homebrew projects or legally\n              obtained memory dumps of compatible games.\n\n              This file license is GNU GPLv2.\n              You can read the whole license file in\n              https://opensource.org/licenses/gpl-2.0.php\n\n-->\n\n<misterromdescription>\n    <about author=\"jotego\" webpage=\"https://patreon.com/jotego\" twitter=\"@topapate\" source=\"https://jotego/jtcores\"/>\n    <rotation>horizontal</rotation>\n    <name>Giga Wing (Japan 990223)</name>\n    <setname>gigawingop</setname>\n    <mameversion>0282</mameversion>\n    <year>1999</year>\n    <manufacturer>Takumi (Capcom license)</manufacturer>\n    <players>2</players>\n    <rbf>jtcps2</rbf>\n    <joystick>8</joystick>\n    <region>World</region>\n    <rom index=\"0\" zip=\"gigawingop.zip|qsound.zip\" md5=\"None\" address=\"0x30000000\" asm_md5=\"c571194944d0f14c69a9a5e55187bb42\">\n        <!--  -->\n        <part>\n            00 06 80 06 80 26 80 66\n            FF FF FF FF FF FF FF FF\n            32 FF 00 02 04 06 26 28\n            2A 2C 2E 00 00 30 02 04\n            08 30 FF FF FF FF FF FF\n            FF FF FF FF </part>\n        <!-- key - starts at 0x0 - length 0x14 (5 bits) -->\n        <part name=\"gigawingj.key\" crc=\"8121a25e\"/>\n        <!-- maincpu - starts at 0x14 - length 0x180000 (21 bits) -->\n        <part name=\"ggwj.03a\" crc=\"7ad2e058\"/>\n        <part name=\"ggwj.04a\" crc=\"1c4485e7\"/>\n        <part name=\"ggwj.05a\" crc=\"43811454\"/>\n        <!-- audiocpu - starts at 0x180014 - length 0x20000 (17 bits) -->\n        <part name=\"ggw.01\" crc=\"4c6351d5\"/>\n        <!-- qsound - starts at 0x1A0014 - length 0x800000 (23 bits) -->\n        <interleave output=\"16\">\n            <part name=\"ggw.11m\" crc=\"e172acf5\" map=\"12\"/>\n        </interleave>\n        <interleave output=\"16\">\n            <part name=\"ggw.12m\" crc=\"4bee4e8f\" map=\"12\"/>\n        </interleave>\n        <!-- gfx - starts at 0x9A0014 - length 0x1000000 (24 bits) -->\n        <interleave output=\"64\">\n            <part name=\"ggw.13m\" crc=\"105530a4\" map=\"00000021\"/>\n            <part name=\"ggw.15m\" crc=\"9e774ab9\" map=\"00002100\"/>\n            <part name=\"ggw.17m\" crc=\"466e0ba4\" map=\"00210000\"/>\n            <part name=\"ggw.19m\" crc=\"840c8dea\" map=\"21000000\"/>\n        </interleave>\n        <!-- firmware - starts at 0x19A0014 - length 0x2000 (13 bits) -->\n        <part name=\"dl-1425.bin\" crc=\"d6cf5ef5\" length=\"0x2000\"/>\n        <!-- Total 0x19A2014 bytes - 26248 kBytes -->\n    </rom>\n    <rom index=\"2\">\n        <part>\n00 00 01 00 00 00 00 02 00 00 00 00 00 00 00 00\n03 01 00 02 00 00 00 00 00 00 00 00 00 00 00 00\n11 98 02 30 10 97 FF 31 41 43 47 50 55 47 41 53\n00 00 01 00 00 00 00 02 00 00 00 00 00 00 00 00\n03 01 00 02 00 00 00 00 00 00 00 00 00 00 00 00\n11 98 02 30 10 97 FF 31 41 43 47 50 55 47 41 53\n00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n</part>\n    </rom>\n    <nvram index=\"2\" size=\"128\"/>\n    <rom index=\"1\">\n        <part>00 80</part>\n    </rom>\n    <switches page_id=\"1\" page_name=\"Switches\" base=\"16\" default=\"ff,ff\">\n        <DSWA/>\n        <DSWB/>\n        <DSWC/>\n    </switches>\n    <buttons names=\"Shot,Force Bomb,Rapid Shot,-,-,-,Start,Coin,Core credits\" default=\"A,B,X,Start,Select,-\" count=\"2\"/>\n</misterromdescription>\n";
 // MRA-END
 
 const ROMSET = {   // every file MAME needs for gigawingj: [size, original CRC32]

@@ -2,11 +2,12 @@
 --
 -- At frame 2400 (in a scripted game) this script:
 --   * sets the real enemy-bullet lists aside and builds a known layout from free nodes,
---   * makes a fake enemy at (256,128) in unused RAM,
+--   * makes a fake enemy at (256,128) in unused RAM with a hitbox 40 px left/right of its X,
 --   * calls the cancel routine directly (A6 = fake enemy, interrupts masked) returning to a
 --     "bra.s *" stub in RAM, and on the next frame checks the result.
--- Layout (offset from the enemy):  A +55,0 (inside 64)  B +68,0 (outside 64, 13 from A)  C +81,0 (13 from B)
---                                  D +103,0 (22 from C: outside 16)  E 0,+70 (outside all)
+-- Layout (offset from the enemy centre): A +100,0 (60 px from the box edge: inside 64, though 100 from the
+--   centre)  B +113,0 (13 from A)  C +126,0 (13 from B)
+--   D +148,0 (22 from C: outside 16)  E 0,+70 (70 px below the box: outside)
 -- Expected: A,B,C cancelled (chain), D,E kept, bullet count -3, 3 small medals spawned.
 -- Output: $HOME/gw/cunit.txt  ("PASS ..." or "FAIL ...")
 --
@@ -39,7 +40,7 @@ emu.register_frame_done(function()
   if n == 2400 then
     sp:write_u32(HEAD_SPAWN, 0) sp:write_u32(HEAD_MOVE, 0)      -- set real bullets aside
     local ex, ey = 0x100, 0x80
-    local layout = { {"A", 55, 0}, {"B", 68, 0}, {"C", 81, 0}, {"D", 103, 0}, {"E", 0, 70} }
+    local layout = { {"A", 100, 0}, {"B", 113, 0}, {"C", 126, 0}, {"D", 148, 0}, {"E", 0, 70} }
     for _, b in ipairs(layout) do
       local node = sp:read_u32(FREE)
       sp:write_u32(FREE, sp:read_u32(node))                     -- pop a free node
@@ -50,6 +51,7 @@ emu.register_frame_done(function()
     end
     for i = 0, 0x7f do sp:write_u8(ENEMY + i, 0) end
     sp:write_u16(ENEMY + 0xa, ex) sp:write_u16(ENEMY + 0xe, ey)
+    sp:write_u16(ENEMY + 0x18, 40) sp:write_u16(ENEMY + 0x16, 40)   -- hitbox: 40 px left/right of X, 0 up/down
     sp:write_u16(STUB, 0x60fe)                                  -- bra.s *
     count0, medals0 = sp:read_u16(COUNT), listlen(MEDALS8)
     saved = {}
@@ -59,6 +61,7 @@ emu.register_frame_done(function()
     cpu.state["SP"].value = s
     cpu.state["A5"].value = A5
     cpu.state["A6"].value = ENEMY
+    cpu.state["A3"].value = ENEMY + 0x7e                     -- descriptor: part count word = 0
     cpu.state["SR"].value = 0x2700                              -- supervisor, interrupts masked
     cpu.state["PC"].value = 0x90250
   elseif n == 2401 then

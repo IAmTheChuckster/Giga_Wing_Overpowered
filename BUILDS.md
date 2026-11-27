@@ -19,3 +19,4 @@ One line per patcher build, appended automatically by `gigawing_patch.py sync` (
 - Build 15 (2026-11-27): 13 patch(es); ggwj.03a 6238b9de, ggwj.04a 4976cb3d, ggwj.05a 43811454
 - Build 16 (2026-11-27): 13 patch(es); ggwj.03a 6238b9de, ggwj.04a 69a26ea5, ggwj.05a 43811454
 - Build 17 (2026-11-27): 13 patch(es); ggwj.03a 6238b9de, ggwj.04a f148e056, ggwj.05a 43811454
+- Build 18 (2026-11-27): 15 patch(es); ggwj.03a 7ad2e058, ggwj.04a 1c4485e7, ggwj.05a 43811454

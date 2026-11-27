@@ -5,7 +5,7 @@ Patches built here (see devs_notes/DEV_NOTES.md):
   * Button 3 = 10Hz rapid Shot (4 hooked port reads + reader routines at $90100)
   * Reflect Force cooldown 2x faster (gauge drain $10 -> $20 per frame at $4A62E)
   * Medal magnet: medals near the ship get pulled in (hooks $23652/$237D6, code at $901C0)
-  * Bullet cancel: enemy kill turns nearby enemy bullets (chained) into small medals (hook $67E5A, code at $90250)
+  * Bullet cancel: enemy kill turns nearby enemy bullets (chained) into small medals (hooks $67E5A/$24B5C/$57458, code at $90250)
   * Boot screen: GIGAWING OVERPOWERED / 2 6 1 1 2 7 (plain text at $60090 / $600E4)
 
 What it does
@@ -137,8 +137,15 @@ def magnet_code():
 
 # ---------------- bullet cancel ----------------
 CANCEL = 0x90250          # after the magnet code, same verified-unused block
-CANCEL_SITE = 0x67E5A     # in the common "enemy destroyed" routine $67E52: btst #4,$1(a6) (6 bytes, kill path only)
-CANCEL_KILL_R = 64        # bullets within 64 px of the dead enemy are cancelled
+# Kill paths hooked (A6 = the destroyed object, position words +$A/+$E). Running the cancel twice for one
+# kill is harmless (the second pass finds nothing left).
+CANCEL_SITES = [
+    (0x67E5A, "btst1", "common enemy-destroyed routine $67E52: btst #4,$1(a6)"),
+    (0x24B5C, "btst0", "second enemy-destroyed routine $24B3x (single object): btst #4,$1(a6)"),
+    (0x57458, "score", "kill-score routine $57458 (40+ enemy/boss callers): btst #4,(a6) + beq.b $57464"),
+]
+CANCEL_KILL_R = 64        # bullets over the dead enemy's hitbox or within 64 px of its edge are cancelled
+CANCEL_MAX_PARTS = 8      # multi-part enemies: up to 8 consecutive $80-byte part objects (count-1 in (a3))
 CANCEL_CHAIN_R = 16       # ...and any bullet within 16 px of a cancelled bullet, repeatedly (chain)
 SMALL_MEDAL = 8           # medal type used by the game's own bullet->medal conversion ($23D50)
 # Enemy bullets: two linked lists (heads -$10E4(a5) spawning, -$10E0(a5) moving), count -$10D4(a5),
@@ -148,15 +155,35 @@ SMALL_MEDAL = 8           # medal type used by the game's own bullet->medal conv
 
 def cancel_code():
     items = [
+        # entry for the two "btst #4,$1(a6)" sites (A3 = enemy descriptor, (a3) = part count - 1)
+        ("label", "btst1"),
+        w(0x2F00), w(0x3013), ("b16", 0x6100, "core"), w(0x201F),   # keep d0; d0 = (a3) ; bsr core
+        w(0x082E, 0x0004, 0x0001), w(0x4E75),                # btst #4,$1(a6) (displaced) ; rts (keeps CCR)
+        # same, single object (the $24B5C routine doesn't walk parts, so (a3) isn't a part count there)
+        ("label", "btst0"),
+        w(0x2F00), w(0x7000), ("b16", 0x6100, "core"), w(0x201F),
+        w(0x082E, 0x0004, 0x0001), w(0x4E75),
+        # entry for $57458: displaced "btst #4,(a6) ; beq.b $57464" (return address $5745E, target +6).
+        # d0 holds the score being awarded: keep it.
+        ("label", "score"),
+        w(0x2F00), w(0x7000), ("b16", 0x6100, "core"), w(0x201F),   # keep d0; d0 = 0 (one part)
+        w(0x0816, 0x0004), w(0x6602), w(0x5C97),             # btst #4,(a6) ; bne.s +2 ; addq.l #6,(sp)
+        w(0x4E75),
+        ("label", "core"),                                   # d0.w = extra parts; A6 = destroyed object
         w(0x48E7, 0xFFFE),                                   # movem.l d0-d7/a0-a6,-(sp)
-        w(0x3C2E, 0x000A), w(0x3E2E, 0x000E),                # d6/d7 = enemy X/Y
         w(0x95CA), w(0x97CB),                                # a2 = a3 = 0 (cancelled list head/tail)
+        w(0x0240, CANCEL_MAX_PARTS - 1), w(0x3F00),          # part counter on the stack (capped)
         w(0x2A3C) + l(CANCEL_KILL_R ** 2),                   # d5 = R^2
+        ("label", "part"),                                   # box of this part (same as the shot collision $23C7E)
+        w(0x3C2E, 0x000A), w(0x3606), w(0x9C6E, 0x0018), w(0xD66E, 0x0016),   # d6 = X-$18, d3 = X+$16
+        w(0x3E2E, 0x000E), w(0x3807), w(0x9E6E, 0x001C), w(0xD86E, 0x001A),   # d7 = Y-$1C, d4 = Y+$1A
         ("b16", 0x6100, "gather"),
+        w(0x4DEE, 0x0080), w(0x5357), ("b8", 0x6A00, "part"),   # next part object (+$80) ; count--
+        w(0x548F),                                           # drop the counter
         w(0x224A),                                           # a1 = cancelled head (chain cursor)
         ("label", "chain"),
         w(0x2009), ("b8", 0x6700, "spawn"),                  # while a1
-        w(0x3C29, 0x0006), w(0x3E29, 0x000A),                # centre = this cancelled bullet
+        w(0x3C29, 0x0006), w(0x3606), w(0x3E29, 0x000A), w(0x3807),   # box = this cancelled bullet (a point)
         w(0x2A3C) + l(CANCEL_CHAIN_R ** 2),
         w(0x2F09), ("b16", 0x6100, "gather"), w(0x225F),     # gather (keeps a1)
         w(0x2251), ("b8", 0x6000, "chain"),                  # a1 = a1->next
@@ -171,15 +198,23 @@ def cancel_code():
         ("b8", 0x6000, "spawn"),
         ("label", "done"),
         w(0x4CDF, 0x7FFF),                                   # movem.l (sp)+,d0-d7/a0-a6
-        w(0x082E, 0x0004, 0x0001), w(0x4E75),                # btst #4,$1(a6) (displaced) ; rts (keeps CCR)
-        ("label", "gather"),                                 # move bullets within sqrt(d5) of (d6,d7) to cancel list
+        w(0x4E75),
+        ("label", "gather"),                                 # move bullets within sqrt(d5) of box d6..d3 x d7..d4
         w(0x49ED, 0xEF1C), ("b16", 0x6100, "scan"),          # lea -$10e4(a5),a4
         w(0x49ED, 0xEF20),                                   # lea -$10e0(a5),a4 ; fall into scan
         ("label", "scan"),                                   # a4 = address of the previous link field
         w(0x2014), ("b8", 0x6700, "sret"), w(0x2040),        # a0 = next bullet
-        w(0x3228, 0x0006), w(0x9246), w(0xC3C1),             # d1 = dx^2
-        w(0x3428, 0x000A), w(0x9447), w(0xC5C2),             # d2 = dy^2
-        w(0xD282), w(0xB285), ("b8", 0x6400, "keep"),        # if dx^2+dy^2 >= R^2: keep
+        w(0x3228, 0x0006),                                   # d1 = bullet X
+        w(0x3006), w(0x9041), ("b8", 0x6E00, "gx"),          # d0 = left - x ; > 0: outside left
+        w(0x9243), w(0x3001), ("b8", 0x6E00, "gx"),          # d0 = x - right ; > 0: outside right
+        w(0x7000),                                           # inside horizontally: 0
+        ("label", "gx"), w(0xC1C0),                          # d0 = dx^2
+        w(0x3228, 0x000A),                                   # d1 = bullet Y
+        w(0x3407), w(0x9441), ("b8", 0x6E00, "gy"),          # d2 = top - y
+        w(0x9244), w(0x3401), ("b8", 0x6E00, "gy"),          # d2 = y - bottom
+        w(0x7400),
+        ("label", "gy"), w(0xC5C2), w(0xD480),               # d2 = dx^2 + dy^2
+        w(0xB485), ("b8", 0x6400, "keep"),                   # if >= R^2: keep
         w(0x2890), w(0x4290),                                # unlink: *a4 = a0->next ; a0->next = 0
         w(0x200B), ("b8", 0x6600, "app"), w(0x2448), ("b8", 0x6000, "set"),
         ("label", "app"), w(0x2688),                         # tail->next = a0
@@ -284,16 +319,17 @@ def main():
         patches.append(e)
 
         # Bullet cancel
-        ccode, _ = cancel_code()
+        ccode, clab = cancel_code()
         assert CANCEL >= MAGNET + len(mcode) and CANCEL + len(ccode) <= 0x90818
         try:
             for i in md.disasm(ccode, CANCEL):
                 print(f"{i.address:06x}: {i.bytes.hex():<16} {i.mnemonic} {i.op_str}")
         except NameError:
             pass
-        e = patch("ggwj.03a", 0, CANCEL_SITE, w(0x4EB9) + l(CANCEL))
-        e["note"] = f"Enemy destroyed $67E52: btst #4,$1(a6) at ${CANCEL_SITE:x} -> jsr ${CANCEL:x} (bullet cancel, CPS2-encrypted)"
-        patches.append(e)
+        for site, entry, desc in CANCEL_SITES:
+            e = patch("ggwj.03a", 0, site, w(0x4EB9) + l(clab[entry]))
+            e["note"] = f"Bullet cancel hook in the {desc} at ${site:x} -> jsr ${clab[entry]:x} (CPS2-encrypted)"
+            patches.append(e)
         e = patch("ggwj.04a", 0x80000, CANCEL, ccode)
         e["note"] = (f"Bullet cancel at ${CANCEL:x} (CPS2-encrypted): on enemy kill, enemy bullets within {CANCEL_KILL_R} px, "
                      f"then any within {CANCEL_CHAIN_R} px of a cancelled bullet (chained), become small medals (type {SMALL_MEDAL}).")

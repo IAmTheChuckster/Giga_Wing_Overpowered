@@ -99,7 +99,7 @@ patches.json ──► gigawing_patch.py sync ──► mister/*.mra (CRCs)
 * Every 68000 word of new code is encrypted, including extension words (immediates, absolute addresses), because they're fetched as program.
 
 ### Free ROM space
-* **$090088-$090817** (1936 bytes of zeros in `ggwj.04a`, file offset $10088), inside the encrypted range. A MAME read tap (`who_reads.lua`, `GW_LO=90088 GW_HI=90817`) over 8000 frames of gameplay saw **zero reads**. The rapid-fire code lives at **$090100-$0901A7**. Space used by the magnet: $0901C0-$090243; bullet cancel: $090250-$09038D. Space left: $09038E-$090817.
+* **$090088-$090817** (1936 bytes of zeros in `ggwj.04a`, file offset $10088), inside the encrypted range. A MAME read tap (`who_reads.lua`, `GW_LO=90088 GW_HI=90817`) over 8000 frames of gameplay saw **zero reads**. The rapid-fire code lives at **$090100-$0901A7**. Space used by the magnet: $0901C0-$090243; bullet cancel: $090250-$09038D; score extends: $0903A0-$0903DF. Space left: $0903E0-$090817.
 * Other zero runs exist ($08B040, $08C168, $08E926, …) but are **unverified**; tap-test before use.
 * $17DBE2-$17F0B4 is zero but above the encryption limit (don't use for code, see above). The game reads $17DF82 and $17EF80 there.
 
@@ -142,6 +142,10 @@ patches.json ──► gigawing_patch.py sync ──► mister/*.mra (CRCs)
 * **Enemy bullets:** linked lists `-$10E4(a5)` = `$FF6F1C` (just fired, spawn animation) and `-$10E0(a5)` = `$FF6F20` (moving); count `-$10D4(a5)` = `$FF6F2C`. All objects (bullets, medals) share the free node list `-$10D8(a5)`. Node: `+0` next, `+6` X, `+$A` Y (16.16), `+$E`/`+$12` velocity. Spawner `$24E20` (enemy fire). The game frees a bullet with `subq.w #1,-$10D4(a5)` and pushes the node back on the free list.
 * **Medal spawner `$2B60E`:** `d0` = Y velocity, `d1` = X velocity, `d2`/`d3` = X/Y (clamped to the screen), `d4` = type. **Type 8 = small medal** (plain list `-$10BC`, capped at 100 by `-$107A`). The game itself turns reflected bullets that hit enemies into type-8 medals at `$23D36` with random velocity from `$378A` (`d0 & $1FFFF`, `(d1 & $3FFF) - $2000`).
 * **Score:** BCD at `$FF70CC` (P1); per-frame pending add from `$FF72AA` (P1) / `$FF72B2` (P2) at `$645EC`.
+
+### Lives and score
+* **Lives:** words `-$D24(a5)` = `$FF72DC` (P1) and `-$D22(a5)` = `$FF72DE` (P2); the HUD "×N" shows this value. The 1UP item (`$20338`, only spawned while lives < 2) adds 1 at `$203B8`/`$203C0` and sets bit 2 of `-$D74(a5)` = `$FF728C`.
+* **Score:** 16 BCD digits (8 bytes) at `$FF70CC` (P1) / `$FF70D4` (P2). Once per frame `$645F2`/`$64608` add the pending points (`$FF72AA` / `$FF72B2`) with `bsr $64704`, which also clears the pending amount and updates the high score (`$FF70DC`). The top word of the score is its trillions (4 BCD digits).
 
 ### Frame counter
 * `$FF2090` (word) is incremented once per vblank at $B56. Used as the rapid-fire phase.
@@ -261,6 +265,29 @@ Tune `MAGNET_RANGE` in `build_patches.py` for a bigger or smaller pull radius. P
 
 ---
 
+## 5g. Patch: score extends (Build 19)
+
+**Behaviour:** an extra life every **1,000,000,000,000** points, for P1 and P2, with the same 1UP flag the 1UP item sets; no extend is given beyond 9 lives in stock (`EXTEND_MAX_LIVES`).
+
+**Hooks:** at `$645F8` (P1) and `$6460E` (P2), `lea score,a1` + `bsr.w $64704` (10 bytes) → `jsr` + `nop nop` (encrypted). Routine at `$903A0`:
+```asm
+p1: pea $ff72dc.l / lea $ff70cc.l,a1 / bra.s common     ; p2: pea $ff72de.l / lea $ff70d4.l,a1
+common: move.w (a1),-(sp)          ; score's top word (trillions) before the add
+        move.l a1,-(sp)
+        jsr $64704.l               ; the game's own score add (a0 = pending, set by the caller)
+        movea.l (sp)+,a1 / move.w (sp)+,d0 / movea.l (sp)+,a3   ; a3 = lives word
+        cmp.w (a1),d0 / beq done   ; trillions unchanged
+        cmpi.w #9,(a3) / bcc done  ; stock full
+        addq.w #1,(a3)
+        bset #2,$ff728c.l          ; 1UP flag, as the 1UP item
+done:   rts
+```
+Only registers `$64704` already clobbers are used. Crossing several trillions in one frame gives one life.
+
+**Test** (`extend_test.lua`, score written directly): crossing 1 trillion → +1 life; 300 frames without crossing → +0; crossing 2 trillion with 9 lives → stays 9. **PASS.** Regression (rapid fire, magnet trailing, cancel unit test, stability) also passes.
+
+---
+
 ## 5c. Patch: boot screen text (Build 9)
 
 The region/version screen comes from a text table at `$60000+` (data, so **plain, never encrypted**, only word-swapped in the file). Each entry: 2 bytes position (`$0C $yy`), a **25-character field**, `$00`. There's one block per region; gigawingj uses the first (Japan) block:
@@ -341,6 +368,7 @@ See `BUILDS.md` for the generated log. Human summary:
 | 16 | Bullet cancel kill radius widened 24 → 32 px |
 | 17 | Bullet cancel kill radius doubled 32 → 64 px |
 | 18 | Bullet cancel on all kill paths ($67E5A, $24B5C, $57458), measured from the enemy hitbox (all parts) |
+| 19 | Score extends: a life every 1,000,000,000,000 points (max 9 lives) |
 
 ---
 

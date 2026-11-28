@@ -13,6 +13,7 @@ I did all the testing and planning.
 - **Reflect Force cooldown is twice as fast**: after a Reflect Force, the red RF gauge drains in about 2.1 s instead of about 4.3 s, so Reflect Force is available again sooner.
 - **Medal magnet**: medals that come within about 96 pixels of your ship get sucked in and collected automatically.
 - **Bullet cancels**: when you destroy any enemy (including big multi-part enemies and boss parts), every enemy bullet over its body or within 64 pixels of it turns into a small medal, and any bullet within 16 pixels of a cancelled bullet is cancelled too, so clusters chain-cancel.
+- **Score extends**: an extra life every 1,000,000,000,000 points, with the normal 1UP effect, up to 9 lives in stock.
 - **Boot screen** now reads `GIGAWING OVERPOWERED` / `2 6 1 1 2 7`.
 
 Every patcher build is listed in [BUILDS.md](BUILDS.md). Full technical notes, so anyone can rebuild or extend this project from scratch, are in [devs_notes/DEV_NOTES.md](devs_notes/DEV_NOTES.md).

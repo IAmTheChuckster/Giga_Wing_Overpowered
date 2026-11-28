@@ -95,6 +95,27 @@
     },
     {
       "file": "ggwj.03a",
+      "offset": "0x645f8",
+      "original": "5d2cb4f9db19018f53bd",
+      "patched": "7e3593aa10093c8e08de",
+      "note": "Score extend hook (P1): lea $ff70cc,a1 + bsr $64704 at $645f8 -> jsr $903a0 + nop nop (CPS2-encrypted)"
+    },
+    {
+      "file": "ggwj.03a",
+      "offset": "0x6460e",
+      "original": "308b89a3932f7b41ed6f",
+      "patched": "7098bd87c8d1db384f38",
+      "note": "Score extend hook (P2): lea $ff70d4,a1 + bsr $64704 at $6460e -> jsr $903ae + nop nop (CPS2-encrypted)"
+    },
+    {
+      "file": "ggwj.04a",
+      "offset": "0x103a0",
+      "original": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "patched": "eb1b74f2bfcb5cd4ca93d5d71b77a40238240bea9fe0306500dbe98552fc5d8c3fb6d08c3e73f5f2f8330c8ee0c69fd532ab4b758ffa2f5066f1025dece2ff7e",
+      "note": "Score extends at $903a0 (CPS2-encrypted): runs the game's score add, and if the score's trillions changed adds a life (max 9) and sets the 1UP flag."
+    },
+    {
+      "file": "ggwj.03a",
       "offset": "0x60090",
       "original": "2020202020204720474957414e49204720202020202020200020",
       "patched": "2020494741474957474e4f2045565052574f5245444520200020",
@@ -110,8 +131,8 @@
   ],
   "outputs": {
     "gigawingj.key": "8121a25e",
-    "ggwj.03a": "7ad2e058",
-    "ggwj.04a": "1c4485e7",
+    "ggwj.03a": "bcdae217",
+    "ggwj.04a": "455022e4",
     "ggwj.05a": "43811454",
     "ggw.01": "4c6351d5",
     "ggw.11m": "e172acf5",

@@ -6,6 +6,7 @@ Patches built here (see devs_notes/DEV_NOTES.md):
   * Reflect Force cooldown 2x faster (gauge drain $10 -> $20 per frame at $4A62E)
   * Medal magnet: medals near the ship get pulled in (hooks $23652/$237D6, code at $901C0)
   * Bullet cancel: enemy kill turns nearby enemy bullets (chained) into small medals (hooks $67E5A/$24B5C/$57458, code at $90250)
+  * Score extends: a life every 1,000,000,000,000 points (hooks $645F8/$6460E, code at $903A0)
   * Boot screen: GIGAWING OVERPOWERED / 2 6 1 1 2 7 (plain text at $60090 / $600E4)
 
 What it does
@@ -225,6 +226,38 @@ def cancel_code():
     return assemble(items, CANCEL)
 
 
+# ---------------- score extends ----------------
+EXTEND = 0x903A0          # after the bullet-cancel code, same verified-unused block
+EXTEND_MAX_LIVES = 9      # don't add lives beyond this stock (single-digit HUD)
+# Every 1,000,000,000,000 points = a life. Score is 16 BCD digits (8 bytes): the top word holds the
+# trillions, so an extend is due whenever that word changes. The game adds pending points into the score
+# once per frame at $645F2 (P1: pending $FF72AA -> score $FF70CC) / $64608 (P2: $FF72B2 -> $FF70D4) with
+# bsr $64704. Lives: words $FF72DC (P1) / $FF72DE (P2); a 1UP also sets bit 2 of $FF728C (as the 1UP
+# item does at $203AA).
+EXTEND_SITES = [(0x645F8, "p1", 0xFF70CC, 0xFF72DC), (0x6460E, "p2", 0xFF70D4, 0xFF72DE)]
+
+
+def extend_code():
+    items = []
+    for i, (site, lab, score, lives) in enumerate(EXTEND_SITES):
+        items += [("label", lab), w(0x4879) + l(lives),                # pea lives
+                  w(0x43F9) + l(score)]                                # lea score,a1
+        if i == 0:
+            items += [("b8", 0x6000, "common")]
+    items += [
+        ("label", "common"),
+        w(0x3F11), w(0x2F09),                                          # save top word, a1
+        w(0x4EB9) + l(0x64704),                                        # the game's score add (a0 = pending)
+        w(0x225F), w(0x301F), w(0x265F),                               # a1, old top word -> d0, lives -> a3
+        w(0xB051), ("b8", 0x6700, "done"),                             # trillions unchanged?
+        w(0x0C53, EXTEND_MAX_LIVES), ("b8", 0x6400, "done"),           # stock full?
+        w(0x5253),                                                     # addq.w #1,(a3)
+        w(0x08F9, 0x0002) + l(0xFF728C),                               # bset #2,$ff728c (1UP flag/jingle)
+        ("label", "done"), w(0x4E75),
+    ]
+    return assemble(items, EXTEND)
+
+
 def run(tmp, cmd):
     if shutil.which("gcc"):
         subprocess.run(cmd, shell=True, cwd=tmp, check=True, capture_output=True)
@@ -333,6 +366,24 @@ def main():
         e = patch("ggwj.04a", 0x80000, CANCEL, ccode)
         e["note"] = (f"Bullet cancel at ${CANCEL:x} (CPS2-encrypted): on enemy kill, enemy bullets within {CANCEL_KILL_R} px, "
                      f"then any within {CANCEL_CHAIN_R} px of a cancelled bullet (chained), become small medals (type {SMALL_MEDAL}).")
+        patches.append(e)
+
+        # Score extends
+        xcode, xlab = extend_code()
+        assert EXTEND >= CANCEL + len(ccode) and EXTEND + len(xcode) <= 0x90818
+        try:
+            for i in md.disasm(xcode, EXTEND):
+                print(f"{i.address:06x}: {i.bytes.hex():<16} {i.mnemonic} {i.op_str}")
+        except NameError:
+            pass
+        for site, lab, score, lives in EXTEND_SITES:
+            e = patch("ggwj.03a", 0, site, w(0x4EB9) + l(xlab[lab]) + w(0x4E71, 0x4E71))
+            e["note"] = (f"Score extend hook ({lab.upper()}): lea ${score:x},a1 + bsr $64704 at ${site:x} -> "
+                         f"jsr ${xlab[lab]:x} + nop nop (CPS2-encrypted)")
+            patches.append(e)
+        e = patch("ggwj.04a", 0x80000, EXTEND, xcode)
+        e["note"] = (f"Score extends at ${EXTEND:x} (CPS2-encrypted): runs the game's score add, and if the score's "
+                     f"trillions changed adds a life (max {EXTEND_MAX_LIVES}) and sets the 1UP flag.")
         patches.append(e)
 
         e = text(0x60090, "       GIGAWING          ", "  GIGAWING OVERPOWERED   ")
